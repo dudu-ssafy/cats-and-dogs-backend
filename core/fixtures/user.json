@@ -1,0 +1,44 @@
+[
+  {
+    "model": "core.user",
+    "pk": 1,
+    "fields": {
+      "username": "admin",
+      "email": "admin@example.com",
+      "is_superuser": true,
+      "is_staff": true,
+      "is_active": true,
+      "password": "pbkdf2_sha256$320000$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 
+      "first_name": "관리",
+      "last_name": "자"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 2,
+    "fields": {
+      "username": "coder_kim",
+      "email": "kim@example.com",
+      "is_superuser": false,
+      "is_staff": false,
+      "is_active": true,
+      "password": "pbkdf2_sha256$320000$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "first_name": "철수",
+      "last_name": "김"
+    }
+  },
+  {
+    "model": "core.user",
+    "pk": 3,
+    "fields": {
+      "username": "reviewer_lee",
+      "email": "lee@example.com",
+      "is_superuser": false,
+      "is_staff": false,
+      "is_active": true,
+      "password": "pbkdf2_sha256$320000$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "first_name": "영희",
+      "last_name": "이"
+    }
+  }
+]
