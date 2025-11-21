@@ -1,9 +1,9 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from core.serializers.user import UserCreateSerializer, LoginSerializer, LogoutSerializer
+from core.serializers.user import UserCreateSerializer, LoginSerializer, LogoutSerializer, UserDetailSerializer
 from core.services.user import UserService
 
 
@@ -34,3 +34,8 @@ class UserViewSet(viewsets.ViewSet):
             UserService.logout(serializer.validated_data['refresh'])
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def profile(self, request):
+        serializer = UserDetailSerializer(request.user)
+        return Response(serializer.data)
