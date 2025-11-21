@@ -9,7 +9,7 @@ class BoardService:
     ):
         queryset = Board.objects.all()
         if category_name:
-            category = BoardCategory.objects.get(name=category_name)
+            category = BoardCategory.objects.filter(name=category_name).first()
             queryset = queryset.filter(category=category)
         
-        return queryset
+        return queryset.order_by('-created_at')

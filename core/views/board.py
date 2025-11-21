@@ -5,7 +5,7 @@ from ..models.board import Board
 from ..services.board import BoardService
 
 class BoardViewSet(viewsets.ModelViewSet):
-    queryset = Board.objects.all().order_by('-created_at')
+    queryset = Board.objects.all()
     serializer_class = BoardSerializer
 
     def get_queryset(self):
