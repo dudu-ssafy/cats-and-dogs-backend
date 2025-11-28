@@ -9,10 +9,8 @@ from core.serializers.user import UserCreateSerializer
 class UserService:
     @staticmethod
     def create_user(data):
-        serializer = UserCreateSerializer(data=data)
-        if serializer.is_valid(raise_exception=True):
-            user = serializer.save()
-            return user
+        user = User.objects.create_user(**data)
+        return user
 
     @staticmethod
     def get_token(user):
@@ -26,7 +24,7 @@ class UserService:
     def authenticate_user(username, password):
         user = authenticate(username=username, password=password)
         if not user:
-            raise AuthenticationFailed('Invalid credentials')
+            raise AuthenticationFailed('로그인 정보가 일치하지 않습니다')
         return user
 
     @staticmethod
