@@ -36,6 +36,11 @@ class Board(models.Model):
         verbose_name='작성자',
         null=True
     )
+    like_users = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='BoardLike',
+        related_name='like_boards',
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, 
         verbose_name="생성일"
