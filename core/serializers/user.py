@@ -6,11 +6,13 @@ from core.models import User
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    email = serializers.CharField()
 
     class Meta:
         model = User
         fields = [
             'username',
+            'email',
             'password',
             'profile_image',
         ]
