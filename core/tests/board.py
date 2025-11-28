@@ -201,6 +201,7 @@ class BoardFilteringViewTests(TestCase):
         """존재하지 않는 카테고리 이름으로 요청했을 때 빈 쿼리셋을 반환하는지 확인합니다."""
         
         # Service Layer에서 DoesNotExist 예외 처리 후 빈 쿼리셋을 반환한다고 가정한 테스트입니다.
+        # 테스트 
         queryset = self._get_filtered_queryset('category=없는카테고리')
         
         self.assertEqual(queryset.count(), 0)
