@@ -34,3 +34,12 @@ class UserService:
             token.blacklist()
         except Exception as e:
             raise AuthenticationFailed(e)
+
+    @staticmethod
+    def info_edit(user, username=None, password=None):
+        if username:
+            user.username = username
+        if password:
+            user.set_password(password)
+        user.save()
+        return user

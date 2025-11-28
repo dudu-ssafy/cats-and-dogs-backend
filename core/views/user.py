@@ -59,3 +59,14 @@ class UserViewSet(viewsets.ViewSet):
     def profile(self, request):
         serializer = UserDetailSerializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def info_edit(self, request):
+        updated_user = UserService.info_edit(
+            user=request.user,
+            username=request.data.get('username'),
+            password=request.data.get('password'),
+        )
+        
+        serializer = UserDetailSerializer(updated_user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
