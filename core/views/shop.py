@@ -7,8 +7,8 @@ from ..services.shop import ProductService
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductListSerializer
-
-    def list(self, request):
+    
+    def get_queryset(self):
         """
         상품 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
         
@@ -21,9 +21,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         예시: /products/?category=1&is_sale=true&min_price=10000&max_price=50000
         """
-        queryset = ProductService.get_product_list(request.query_params)
-        serializer = ProductListSerializer(queryset, many=True)
-        return Response(serializer.data)
+        return ProductService.get_product_list(self.request.query_params)
 
     def retrieve(self, request, pk=None):
         """
