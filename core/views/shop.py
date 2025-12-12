@@ -6,15 +6,7 @@ from ..services.shop import ProductService
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
-
-    def get_serializer_class(self):
-        """
-        요청 종류(action)에 따라 사용할 Serializer Class를 반환합니다.
-        """
-        if self.action == 'list':
-            return ProductListSerializer
-        
-        return ProductDetailSerializer
+    serializer_class = ProductListSerializer
     
     def retrieve(self, request, pk=None):
         """
@@ -22,6 +14,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         (GET /products/{pk}/)
         """
         product_instance = ProductService.get_product_detail(pk=pk)
-        serializer = self.get_serializer(product_instance) 
+        serializer = ProductDetailSerializer(product_instance) 
         
         return Response(serializer.data)
