@@ -26,7 +26,7 @@ class CartManageView(APIView):
             {"message": "장바구니가 업데이트되었습니다.", "data": result}, 
             status=status.HTTP_201_CREATED
         )
-    
+
 
     def get(self, request):
         """사용자의 장바구니 내용을 조회합니다."""
