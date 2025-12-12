@@ -25,10 +25,6 @@ class ProductListSerializer(serializers.ModelSerializer):
 # -----------------------------------------------------
 # 3. 상세 조회용 Serializer (기존 ProductSerializer 이름 변경)
 class ProductDetailSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    # 상세 조회에서는 options 정보가 필요하므로 그대로 둡니다.
-    options = ProductOptionSerializer(many=True, read_only=True)
-    
     class Meta:
         model = Product
         # 모든 상세 필드를 포함합니다.
@@ -38,7 +34,12 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at']
 
-class ProductImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductImage
-        fields = ['image_url', 'is_main'] # 노출 순서 등을 포함해도 됩니다.
+    class ProductImageSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = ProductImage
+            fields = ['image_url', 'is_main'] # 노출 순서 등을 포함해도 됩니다.
+
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    options = ProductOptionSerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
+
