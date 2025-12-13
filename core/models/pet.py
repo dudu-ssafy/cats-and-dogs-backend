@@ -2,6 +2,8 @@ from django.db import models
 import uuid
 from django.conf import settings
 
+from pgvector.django import VectorField
+
 class AnimalType(models.Model):
     """반려 동물 종류 (개, 고양이 등)"""
     name = models.CharField(
@@ -31,6 +33,17 @@ class Breed(models.Model):
         '품종명',
         max_length=100,
         help_text='푸들, 코숏 등'
+    )
+    description = models.TextField(
+        '설명',
+        null=True,
+        blank=True
+    )
+    embedding = VectorField(
+        dimensions=1536,
+        help_text='OpenAI embedding vector',
+        null=True,
+        blank=True
     )
 
     class Meta:
