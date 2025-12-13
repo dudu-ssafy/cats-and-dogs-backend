@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
 
-from core.views import board, user, shop
+from core.views import board, user, shop, search
 from core.views.cart import CartManageView
 
 app_name = 'core'
@@ -18,4 +18,5 @@ urlpatterns = [
     path('carts/', CartManageView.as_view(), name='cart_manage'),
     path('token/pair/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('search/test/', search.VectorSearchTestView.as_view(), name='vector-search-test'),
 ]

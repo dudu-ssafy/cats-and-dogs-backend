@@ -2,6 +2,8 @@ from django.db import models
 import uuid
 from django.conf import settings
 
+from pgvector.django import VectorField
+
 class AnimalType(models.Model):
     """반려 동물 종류 (개, 고양이 등)"""
     name = models.CharField(
@@ -46,6 +48,39 @@ class Breed(models.Model):
 
     def __str__(self):
         return f"{self.animal_type.name} - {self.name}"
+
+
+class BreedKnowledge(models.Model):
+    """품종별 상세 지식 (RAG용)"""
+    breed = models.ForeignKey(
+        Breed,
+        on_delete=models.CASCADE,
+        related_name='knowledges',
+        verbose_name='품종'
+    )
+    title = models.CharField(
+        '주제',
+        max_length=100,
+        help_text='예: 성격, 털 빠짐, 주의사항, 추천 양육 환경'
+    )
+    content = models.TextField(
+        '내용',
+        help_text='RAG 검색에 사용될 상세 설명'
+    )
+    embedding = VectorField(
+        dimensions=1536,
+        help_text='OpenAI embedding vector',
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        db_table = 'breed_knowledge'
+        verbose_name = '품종 지식'
+        verbose_name_plural = '품종 지식들'
+
+    def __str__(self):
+        return f"{self.breed.name} - {self.title}"
 
 
 class Pet(models.Model):

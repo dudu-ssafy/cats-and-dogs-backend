@@ -1,4 +1,5 @@
 from django.db import models
+from pgvector.django import VectorField
 
 class Category(models.Model):
     """상품 카테고리 (상의, 하의, 액세서리 등)"""
@@ -32,6 +33,12 @@ class Product(models.Model):
     )
     description = models.TextField(
         '상세 설명'
+    )
+    embedding = VectorField(
+        dimensions=1536,
+        help_text='OpenAI embedding vector',
+        null=True,
+        blank=True
     )
     base_price = models.PositiveIntegerField(
         '기본 가격'

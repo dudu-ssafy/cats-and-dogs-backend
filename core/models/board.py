@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
 
+from pgvector.django import VectorField
+
 class BoardCategory(models.Model):
     name = models.CharField(
         max_length=50,
@@ -29,6 +31,12 @@ class Board(models.Model):
     )
     content = models.TextField(
          verbose_name='내용'
+    )
+    embedding = VectorField(
+        dimensions=1536,
+        help_text='OpenAI embedding vector',
+        null=True,
+        blank=True
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,

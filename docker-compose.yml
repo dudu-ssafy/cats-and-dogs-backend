@@ -1,0 +1,44 @@
+# docker-compose up -d --build
+# docker compose up --no-build
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 데이터베이스 서비스 정의
+  db:
+    # image 대신 build 사용
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    # ... 나머지 설정은 동일
+    container_name: django_pg_db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # 시작 시 pgvector 확장 자동 생성
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      # DB가 시작될 때 pgvector 확장을 생성하는 SQL 명령 실행
+      INIT_SCRIPT: "CREATE EXTENSION IF NOT EXISTS vector;" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432" # 로컬 5432 포트와 컨테이너 포트 연결
+    restart: always
+
+  # 2. Django 애플리케이션 서비스 (예시)
+  web:
+    build: . # Dockerfile이 현재 디렉토리에 있다고 가정
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env # 환경 변수 파일 사용
+    depends_on:
+      - db # db 서비스가 먼저 시작되도록 보장
+
+# 3. 데이터 영속성을 위한 볼륨 정의
+volumes:
+  postgres_data:
