@@ -168,3 +168,8 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+#Oauth Login
+NAVER_CLIENT_ID = os.environ.get('NAVER_CLIENT_ID')
+NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
+NAVER_REDIRECT_URI='http://127.0.0.1:8000/api/v1/users/oauth_login_callback/'

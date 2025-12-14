@@ -6,7 +6,7 @@ from core.models import User
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    email = serializers.CharField()
+    email = serializers.CharField(required=True)
 
     class Meta:
         model = User
@@ -23,9 +23,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()

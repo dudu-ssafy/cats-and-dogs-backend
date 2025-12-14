@@ -3,10 +3,12 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-
+from django.conf import settings
 from core.serializers.user import UserCreateSerializer, LoginSerializer, LogoutSerializer, UserDetailSerializer
 from core.services.user import UserService
-
+from django.shortcuts import redirect
+import requests
+from core.services.user import AuthService
 
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
@@ -37,6 +39,25 @@ class UserViewSet(viewsets.ViewSet):
             token = UserService.get_token(user)
             return Response(token)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'])
+    def oauth_login(self, request):
+        to = request.GET.get('to')
+        print(to)
+        if not to:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        if to == 'naver':
+            return redirect(
+                AuthService.get_naver_login_url()
+            )
+
+    @action(detail=False, methods=['get'])
+    def oauth_login_callback(self, request):
+        return Response(AuthService.handle_naver_callback(
+            code=request.GET.get('code'),
+            state=request.GET.get('state')
+        ))
+
 
     @extend_schema(
         request=LogoutSerializer,
