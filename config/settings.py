@@ -176,3 +176,38 @@ NAVER_REDIRECT_URI='http://127.0.0.1:8000/api/v1/users/oauth_login_callback/?to=
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
+
+# Portone (Iamport) Settings
+PORTONE_API_KEY = os.environ.get('PORTONE_API_KEY')
+PORTONE_API_SECRET = os.environ.get('PORTONE_API_SECRET')
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'payment_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'payment.log'),
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'payment': {
+            'handlers': ['payment_file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
