@@ -172,4 +172,7 @@ SPECTACULAR_SETTINGS = {
 #Oauth Login
 NAVER_CLIENT_ID = os.environ.get('NAVER_CLIENT_ID')
 NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
-NAVER_REDIRECT_URI='http://127.0.0.1:8000/api/v1/users/oauth_login_callback/'
+NAVER_REDIRECT_URI='http://127.0.0.1:8000/api/v1/users/oauth_login_callback/?to=naver'
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')

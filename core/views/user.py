@@ -43,20 +43,29 @@ class UserViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def oauth_login(self, request):
         to = request.GET.get('to')
-        print(to)
-        if not to:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
         if to == 'naver':
             return redirect(
                 AuthService.get_naver_login_url()
             )
+        elif to == 'google':
+            return redirect(
+                AuthService.get_google_login_url()
+            )
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'])
     def oauth_login_callback(self, request):
-        return Response(AuthService.handle_naver_callback(
-            code=request.GET.get('code'),
-            state=request.GET.get('state')
-        ))
+        if request.GET.get('to') == 'naver':
+            return Response(AuthService.handle_naver_callback(
+                code=request.GET.get('code'),
+                state=request.GET.get('state')
+            ))
+        elif request.GET.get('to') == 'google':
+            return Response(AuthService.handle_google_callback(
+                code=request.GET.get('code'),
+                state=request.GET.get('state')
+            ))
 
 
     @extend_schema(

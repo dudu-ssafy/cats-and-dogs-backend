@@ -5,6 +5,7 @@ from django.conf import settings
 from core.models import User
 from core.serializers.user import UserCreateSerializer
 import requests
+from urllib.parse import urlencode
 
 class UserService:
     @staticmethod
@@ -94,3 +95,52 @@ class AuthService:
             user = User.objects.create(email=email, profile_image=profile_image_url)
             return UserService.get_token(user)
 
+    @staticmethod
+    def get_google_login_url():
+        GOOGLE_SCOPE_USERINFO = "https://www.googleapis.com/auth/userinfo.email"
+        GOOGLE_SCOPE_PROFILE = "https://www.googleapis.com/auth/userinfo.profile"
+        scope = f'{GOOGLE_SCOPE_USERINFO} {GOOGLE_SCOPE_PROFILE}'
+        params = {
+        'client_id': settings.GOOGLE_CLIENT_ID,
+        'response_type': 'code',
+        'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+        'scope': scope,
+        'state': 'some_random_state_string_for_security', 
+        'access_type': 'offline'
+        }
+        authorization_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+        return authorization_url
+
+    @staticmethod
+    def handle_google_callback(code, state):
+        token_request_data = {
+            'code': code,
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'client_secret': settings.GOOGLE_CLIENT_SECRET,
+            'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+            'grant_type': 'authorization_code'
+        }
+        token_response = requests.post('https://oauth2.googleapis.com/token', data=token_request_data)
+        token_json = token_response.json()
+        google_access_token = token_json.get('access_token')
+        google_refresh_token = token_json.get('refresh_token')
+
+        # 구버젼: 'https://www.googleapis.com/oauth2/v1/tokeninfo',
+        userinfo_response = requests.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={'Authorization': f'Bearer {google_access_token}'}
+        )
+        userinfo = userinfo_response.json()
+        email = userinfo.get('email')
+        name = userinfo.get('name')
+
+        user = User.objects.filter(email=email).first()
+        if user:
+            return UserService.get_token(user)
+
+        user = User.objects.create(
+            email=userinfo.get('email'), 
+            username=userinfo.get('name'), 
+            profile_image=userinfo.get('picture')
+        )
+        return UserService.get_token(user)
