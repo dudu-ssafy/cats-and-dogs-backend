@@ -180,6 +180,9 @@ GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')
 # Portone (Iamport) Settings
 PORTONE_API_KEY = os.environ.get('PORTONE_API_KEY')
 PORTONE_API_SECRET = os.environ.get('PORTONE_API_SECRET')
+TOSS_PAYMENT_KEY = os.environ.get('TOSS_PAYMENT_KEY')
+
+KAKAO_SECRET_KEY=os.environ.get('KAKAO_SECRET_KEY')
 
 # Logging Configuration
 LOGGING = {

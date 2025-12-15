@@ -97,3 +97,109 @@ class PaymentService:
             order.save()
             logger.warning(f"[Payment Mismatch] Order: {merchant_uid}, Status: {payment_status}, Amount: {amount} vs {order.total_amount}")
             return payment
+
+    @staticmethod
+    def toss_payment():
+        import base64
+        secrey_key = settings.TOSS_PAYMENT_KEY
+        ENCRYPTED_SECRET_KEY = base64.b64encode(f"{secrey_key}:".encode("utf-8")).decode("utf-8")
+        AUTHORIZATION_HEADER = f"Basic {ENCRYPTED_SECRET_KEY}"
+        
+        amount = 100
+        order_id = 123
+        payment_key = 'test_key'
+        url = "https://api.tosspayments.com/v1/payments/confirm"
+
+        headers = {
+            "Authorization": AUTHORIZATION_HEADER,
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "paymentKey": payment_key,
+            "amount": amount,
+            "orderId": order_id,
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            print(response)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[Toss Payment Error] {e}")
+            return None
+
+    @staticmethod
+    def kakao_payment():
+        secrey_key = settings.KAKAO_SECRET_KEY.strip()
+        print(secrey_key)
+        amount = 100
+        order_id = 123
+        payment_key = 'test_key'
+        url = "https://open-api.kakaopay.com/online/v1/payment/ready"
+
+        headers = {
+            # 올바른 Authorization 헤더 형식: SECRET_KEY + 공백 + 실제 시크릿 키 값
+            "Authorization": 'SECRET_KEY '+ secrey_key, 
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+        body = {
+            "cid": "TC0ONETIME", # 테스트 가맹점 코드
+            "partner_order_id": "partner_order_id_123",
+            "partner_user_id": "partner_user_id_456",
+            "item_name": "초코파이",
+            "quantity": 1,         # 숫자로 변경
+            "total_amount": 2200,  # 숫자로 변경
+            "vat_amount": 200,     # 숫자로 변경
+            "tax_free_amount": 0,  # 숫자로 변경
+            "approval_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
+            "fail_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
+            "cancel_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
+            "payment_method_type": "MONEY"
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=body)
+            print(response)
+            response_json = response.json()
+            print(response_json['tid'])
+            if response.status_code == 400:
+                print(f"카카오페이 서버 응답: {response.text}")
+
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[Kakao Payment Error] {e}")
+            return None
+
+    @staticmethod
+    def kakao_payment_approve(pg_token, tid):
+        url = 'https://open-api.kakaopay.com/online/v1/payment/approve'
+        headers = {
+            # 올바른 Authorization 헤더 형식: SECRET_KEY + 공백 + 실제 시크릿 키 값
+            "Authorization": 'SECRET_KEY '+ settings.KAKAO_SECRET_KEY, 
+            "Content-Type": "application/json",
+        }
+
+        data = {
+            "cid": "TC0ONETIME", # 테스트 가맹점 코드
+            "partner_order_id": "partner_order_id_123",
+            "partner_user_id": "partner_user_id_456",
+            "tid": tid,
+            "pg_token": pg_token,
+        }
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response_json = response.json()
+            print(response_json)
+            if response.status_code == 400:
+                print(f"카카오페이 서버 응답: {response.text}")
+
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"[Kakao Payment Error] {e}")
+            return None

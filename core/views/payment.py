@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from core.services.payment import PaymentService
 
 class PaymentViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def checkout(self, request):
@@ -41,6 +41,30 @@ class PaymentViewSet(viewsets.ViewSet):
         payment = PaymentService.verify_payment(merchant_uid, imp_uid, amount)
 
         if payment and payment.order.status == 'PAID':
+            return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'status': 'failed', 'message': 'Payment verification failed'}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get', 'post'])
+    def toss(self, request):
+        print(PaymentService.toss_payment())
+        return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get', 'post'])
+    def kakao(self, request):
+        response = PaymentService.kakao_payment()
+        if response and 'tid' in response:
+            request.session['tid'] = response['tid']
+        return Response(response, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get', 'post'])
+    def kakao_redirect(self, request):
+        tid = request.session.get('tid')
+        if not tid:
+             return Response({'error': 'TID not found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        result = PaymentService.kakao_payment_approve(request.GET.get('pg_token'), tid)
+        if result:
             return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
         else:
             return Response({'status': 'failed', 'message': 'Payment verification failed'}, status=status.HTTP_400_BAD_REQUEST)
