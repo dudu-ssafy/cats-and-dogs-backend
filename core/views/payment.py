@@ -1,12 +1,12 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from core.services.payment import PaymentService
 
 class PaymentViewSet(viewsets.ViewSet):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'])
     def checkout(self, request):
@@ -50,21 +50,39 @@ class PaymentViewSet(viewsets.ViewSet):
         print(PaymentService.toss_payment())
         return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get', 'post'])
-    def kakao(self, request):
-        response = PaymentService.kakao_payment()
+    @action(detail=False, methods=['post'])
+    def kakao_ready(self, request):
+        try:
+             order = PaymentService.create_order(request.user)
+        except ValueError as e:
+            print(e)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        response = PaymentService.kakao_payment_ready(order)
+
         if response and 'tid' in response:
             request.session['tid'] = response['tid']
+            request.session['merchant_uid'] = order.merchant_uid
+            request.session['partner_user_id'] = str(order.user.id)
+
         return Response(response, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get', 'post'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def kakao_redirect(self, request):
         tid = request.session.get('tid')
-        if not tid:
-             return Response({'error': 'TID not found'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        result = PaymentService.kakao_payment_approve(request.GET.get('pg_token'), tid)
-        if result:
-            return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'status': 'failed', 'message': 'Payment verification failed'}, status=status.HTTP_400_BAD_REQUEST)
+        merchant_uid = request.session.get('merchant_uid')
+        partner_user_id = request.session.get('partner_user_id')
+        pg_token = request.GET.get('pg_token')
+
+        if not tid or not pg_token or not merchant_uid:
+            print(tid, pg_token, merchant_uid)
+            return Response({'error': 'Missing payment information'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from core.tasks import process_kakao_payment_approval
+        task = process_kakao_payment_approval.delay(pg_token, tid, merchant_uid, partner_user_id)
+
+        return Response({
+            'status': 'processing', 
+            'message': 'Payment approval started in background.',
+            'task_id': task.id
+        }, status=status.HTTP_200_OK)
