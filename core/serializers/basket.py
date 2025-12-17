@@ -52,11 +52,12 @@ class BasketSerializer(serializers.ModelSerializer):
 
     def get_total_price(self, obj):
         """총 금액 계산"""
-        aggregation_result = obj.items.aggregate(
-            total=Sum(F('price_at_addition') * F('quantity'), output_field=models.DecimalField())
-        )['total']
-        
-        return aggregation_result if aggregation_result is not None else 0
+        total_price = 0
+        items = obj.items.all()
+        for item in items:
+            total_price += (item.product.base_price + item.option.additional_price) * item.quantity
+
+        return total_price
 
 
 class BasketItemAddSerializer(serializers.ModelSerializer):
