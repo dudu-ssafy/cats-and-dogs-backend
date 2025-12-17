@@ -46,6 +46,10 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'pgvector.django',
 ]
+AUTHENTICATION_BACKENDS = [
+    'core.services.user.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

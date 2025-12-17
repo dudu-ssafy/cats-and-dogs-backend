@@ -5,7 +5,24 @@ from django.conf import settings
 from core.models import User
 from core.serializers.user import UserCreateSerializer
 import requests
+from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth import get_user_model
 from urllib.parse import urlencode
+
+class EmailBackend(ModelBackend):
+    """
+    이메일과 비밀번호로 인증하도록 오버라이드합니다.
+    """
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        UserModel = get_user_model()
+        try:
+            user = UserModel.objects.get(email=username)
+        except UserModel.DoesNotExist:
+            return None
+
+        if user.check_password(password):
+            return user
+        return None
 
 class UserService:
     @staticmethod
@@ -24,6 +41,7 @@ class UserService:
     @staticmethod
     def authenticate_user(email, password):
         user = authenticate(email=email, password=password)
+        print(user)
         if not user:
             raise AuthenticationFailed('로그인 정보가 일치하지 않습니다')
         return user
