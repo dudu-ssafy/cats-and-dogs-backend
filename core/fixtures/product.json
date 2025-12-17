@@ -1,0 +1,144 @@
+[
+  {
+    "model": "core.category",
+    "pk": 1,
+    "fields": {
+      "name": "사료/간식"
+    }
+  },
+  {
+    "model": "core.category",
+    "pk": 2,
+    "fields": {
+      "name": "장난감"
+    }
+  },
+  {
+    "model": "core.category",
+    "pk": 3,
+    "fields": {
+      "name": "산책/이동"
+    }
+  },
+  {
+    "model": "core.product",
+    "pk": 1,
+    "fields": {
+      "category": 1,
+      "title": "프리미엄 닭가슴살 져키",
+      "description": "국내산 닭가슴살로 만든 프리미엄 간식입니다. 강아지와 고양이 모두 급여 가능합니다.",
+      "base_price": 8900,
+      "is_sale": true,
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  },
+  {
+    "model": "core.product",
+    "pk": 2,
+    "fields": {
+      "category": 2,
+      "title": "말랑말랑 라텍스 공",
+      "description": "치석 제거에 도움을 주는 라텍스 소재의 장난감 공입니다. 삑삑 소리가 납니다.",
+      "base_price": 4500,
+      "is_sale": true,
+      "created_at": "2024-01-02T11:00:00Z"
+    }
+  },
+  {
+    "model": "core.product",
+    "pk": 3,
+    "fields": {
+      "category": 3,
+      "title": "튼튼한 자동 리드줄",
+      "description": "최대 5M까지 늘어나는 자동 리드줄입니다. 그립감이 좋고 튼튼합니다.",
+      "base_price": 12000,
+      "is_sale": true,
+      "created_at": "2024-01-03T12:00:00Z"
+    }
+  },
+  {
+    "model": "core.productoption",
+    "pk": 1,
+    "fields": {
+      "product": 1,
+      "name": "용량",
+      "value": "100g",
+      "additional_price": 0,
+      "stock": 100
+    }
+  },
+  {
+    "model": "core.productoption",
+    "pk": 2,
+    "fields": {
+      "product": 1,
+      "name": "용량",
+      "value": "300g",
+      "additional_price": 1500,
+      "stock": 50
+    }
+  },
+  {
+    "model": "core.productoption",
+    "pk": 3,
+    "fields": {
+      "product": 2,
+      "name": "색상",
+      "value": "빨강",
+      "additional_price": 0,
+      "stock": 30
+    }
+  },
+  {
+    "model": "core.productoption",
+    "pk": 4,
+    "fields": {
+      "product": 2,
+      "name": "색상",
+      "value": "파랑",
+      "additional_price": 0,
+      "stock": 30
+    }
+  },
+  {
+    "model": "core.productoption",
+    "pk": 5,
+    "fields": {
+      "product": 3,
+      "name": "색상",
+      "value": "블랙",
+      "additional_price": 0,
+      "stock": 20
+    }
+  },
+  {
+    "model": "core.productimage",
+    "pk": 1,
+    "fields": {
+      "product": 1,
+      "image_url": "https://via.placeholder.com/300x300?text=Jerkky",
+      "is_main": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "core.productimage",
+    "pk": 2,
+    "fields": {
+      "product": 2,
+      "image_url": "https://via.placeholder.com/300x300?text=Ball",
+      "is_main": true,
+      "order": 1
+    }
+  },
+  {
+    "model": "core.productimage",
+    "pk": 3,
+    "fields": {
+      "product": 3,
+      "image_url": "https://via.placeholder.com/300x300?text=Leash",
+      "is_main": true,
+      "order": 1
+    }
+  }
+]
