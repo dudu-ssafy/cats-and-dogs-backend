@@ -5,6 +5,14 @@ from django.db.models import QuerySet
 class ProductService:
 
     @staticmethod
+    def get_product_detail(pk: int) -> Product:
+        """
+        주어진 PK로 상품 객체를 조회합니다. 객체가 없으면 Http404를 발생시킵니다.
+        (View에서 try-except 블록이 필요 없게 해주는 핵심 메서드)
+        """
+        return get_object_or_404(Product, pk=pk)
+
+    @staticmethod
     def get_product_list(params: dict) -> QuerySet:
         queryset = Product.objects.all()
 

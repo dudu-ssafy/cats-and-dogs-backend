@@ -14,3 +14,7 @@ SELECT title, substring(embedding::text, 1, 50) as vector_preview FROM core_shor
 
 종료
 \q
+
+fixture
+docker-compose exec web python manage.py loaddata product.json
+docker-compose exec web python manage.py loaddata user
