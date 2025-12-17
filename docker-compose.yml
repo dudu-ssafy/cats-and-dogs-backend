@@ -13,8 +13,9 @@ services:
       - postgres_data:/var/lib/postgresql/data/
       - ./create_vector_extension.sql:/docker-entrypoint-initdb.d/01_vector.sql
     ports:
-      - "5432:5432"
+      - "1123:5432"
     restart: always
+
 
   web:
     build: .
@@ -23,15 +24,18 @@ services:
     entrypoint: /usr/local/bin/entrypoint.sh 
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
     env_file:
       - .env
     depends_on:
-      - db 
+      - db
+    ports:
+      - "8000:8000"
 
   redis:
     image: redis:8.2-alpine
+    depends_on:
+      - db
+      - web
 
   celery1:
     build: .
