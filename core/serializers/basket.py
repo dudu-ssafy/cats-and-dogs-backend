@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Sum, F
-from ..models.cart import Basket, BasketItem
+from core.models.basket import Basket, BasketItem
 from core.models import ProductOption 
 from django.db import models
 
@@ -57,3 +57,15 @@ class BasketSerializer(serializers.ModelSerializer):
         )['total']
         
         return aggregation_result if aggregation_result is not None else 0
+
+
+class BasketItemAddSerializer(serializers.ModelSerializer):
+    """
+    장바구니 항목 추가용 시리얼라이저
+    """
+    product_option_id = serializers.IntegerField(write_only=True, required=True)
+    quantity = serializers.IntegerField(write_only=True, required=True)
+
+    class Meta:
+        model = BasketItem
+        fields = ['product_option_id', 'quantity']

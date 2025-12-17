@@ -71,4 +71,4 @@ class BasketItem(models.Model):
         db_table = 'basket_item'
         verbose_name = '장바구니 항목'
         verbose_name_plural = '장바구니 항목 목록'
-        unique_together = ('basket', 'option') 
+        unique_together = ('basket', 'option')  
