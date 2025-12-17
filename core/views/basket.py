@@ -16,8 +16,7 @@ class BasketManageView(APIView):
             user = request.user
             result = BasketService().add_or_update_basket_item(
                 user=user, 
-                option_id=data['product_option_id'], 
-                quantity=data['quantity']
+                data=data
             )
             return Response({
                 "message": "장바구니가 업데이트되었습니다.",

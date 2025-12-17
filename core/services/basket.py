@@ -3,7 +3,7 @@ from core.models.basket import Basket,BasketItem
 from rest_framework.exceptions import APIException
 from rest_framework import status
 from django.db import transaction
-
+from core.models.shop import ProductOption
 
 class InvalidQuantityError(APIException):
     """수량이 유효하지 않을 때 발생하는 예외"""
@@ -20,25 +20,27 @@ class BasketService:
         """
 
         basket = self.get_user_basket(user)
-        option_id = data.get('product_option_id')
+        option = ProductOption.objects.get(id=data.get('product_option_id'))
         quantity = data.get('quantity')
-
+        product = option.product
         try:
             item = BasketItem.objects.get(
-                basket=basket, 
-                option_id=option_id
+                basket=basket,
+                option=option,
+                product=product
             )
             item.quantity += quantity
             item.save()
         except BasketItem.DoesNotExist:
             item = BasketItem.objects.create(
                 basket=basket,
-                option_id=option_id,
+                option=option,
+                product=product,
                 quantity=quantity
             )
 
-        return {"option_id": option_id, "new_quantity": quantity}
-    
+        return {"option_id": option.id, "new_quantity": quantity}
+
     def get_user_cart_items(self, user):
         """
         장바구니 항목 목록을 조회합니다.

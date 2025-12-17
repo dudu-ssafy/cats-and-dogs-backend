@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models.shop import Product, ProductOption, Category, ProductImage
+from core.models.shop import Product, ProductOption, Category, ProductImage
 
 # -----------------------------------------------------
 # 1. 상세 옵션 Serializer (목록/상세 모두 사용)
