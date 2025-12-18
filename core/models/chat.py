@@ -8,7 +8,7 @@ class ChatSession(models.Model):
     # Simpler approach: Store messages as a JSON list
     # Format: [{"role": "user", "content": "hello"}, {"role": "assistant", "content": "hi"}]
     history = models.JSONField(default=list, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
