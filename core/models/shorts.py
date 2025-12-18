@@ -56,6 +56,7 @@ class ShortsComment(models.Model):
         Shorts,
         on_delete=models.CASCADE,
         verbose_name='쇼츠',
+        related_name='comments'
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,

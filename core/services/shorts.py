@@ -1,6 +1,6 @@
 from core.services.util import process_embedding
 from core.models import ShortsLike
-from core.models import Shorts
+from core.models.shorts import Shorts, ShortsComment
 from django.shortcuts import get_object_or_404
 
 class ShortsService:
@@ -20,3 +20,9 @@ class ShortsService:
             return False
 
         return True
+
+    @staticmethod
+    def create_comment(user, shorts_id, content):
+        shorts = get_object_or_404(Shorts, id=shorts_id)
+        comment = ShortsComment.objects.create(user=user, shorts=shorts, content=content)
+        return comment
