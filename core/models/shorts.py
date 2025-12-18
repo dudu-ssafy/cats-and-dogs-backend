@@ -49,3 +49,31 @@ class Shorts(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ShortsComment(models.Model):
+    shorts = models.ForeignKey(
+        Shorts,
+        on_delete=models.CASCADE,
+        verbose_name='쇼츠',
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='작성자',
+    )
+    content = models.TextField(
+        '내용'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="생성일"
+    )
+
+    class Meta:
+        verbose_name = "쇼츠 댓글"
+        verbose_name_plural = "쇼츠 댓글 목록"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.content
