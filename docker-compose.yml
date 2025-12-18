@@ -14,18 +14,21 @@ services:
       - ./create_vector_extension.sql:/docker-entrypoint-initdb.d/01_vector.sql
     ports:
       - "1123:5432"
+    networks:
+      - django_network
     restart: always
-
 
   web:
     build: .
-    container_name: django_app
+    container_name: django-app
     command: python manage.py runserver 0.0.0.0:8000
     entrypoint: /usr/local/bin/entrypoint.sh 
     volumes:
       - .:/app
     env_file:
       - .env
+    networks:
+      - django_network
     depends_on:
       - db
     ports:
@@ -36,6 +39,8 @@ services:
     depends_on:
       - db
       - web
+    networks:
+      - django_network
 
   celery1:
     build: .
@@ -45,9 +50,16 @@ services:
       - .:/app
     env_file:
       - .env
+    networks:
+      - django_network
     depends_on:
       - db
       - redis
+
+networks:
+  django_network:
+    name: django_shared_network # [핵심] 외부에서 부를 고정 이름 설정
+    driver: bridge
 
 volumes:
   postgres_data:
