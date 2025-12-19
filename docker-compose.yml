@@ -36,6 +36,11 @@ services:
 
   redis:
     image: redis:8.2-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     depends_on:
       - db
       - web
@@ -56,6 +61,20 @@ services:
       - db
       - redis
 
+  celery-beat:
+    build: .
+    container_name: django_celery_beat
+    command: celery -A config.celery beat -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    networks:
+      - django_network
+    depends_on:
+      - db
+      - redis
+
 networks:
   django_network:
     name: django_shared_network # [핵심] 외부에서 부를 고정 이름 설정
@@ -63,3 +82,4 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:

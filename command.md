@@ -18,3 +18,13 @@ SELECT title, substring(embedding::text, 1, 50) as vector_preview FROM core_shor
 fixture
 docker-compose exec web python manage.py loaddata product.json
 docker-compose exec web python manage.py loaddata user
+
+### shell 접속
+- docker compose exec web python manage.py shell
+
+###
+```python
+from core.tasks import update_popular_boards_daily
+update_popular_boards_daily()
+exit()
+```
