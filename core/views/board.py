@@ -26,6 +26,15 @@ class BoardViewSet(viewsets.ModelViewSet):
         """
         return BoardService.get_board_list(self.request.query_params)
 
+    def retrieve(self, request, *args, **kwargs):
+        board = self.get_object()
+        BoardService.update_views(board.id)
+        # Redis에 조회수 및 사용자 최근 본 글 기록
+        RedisService.record_view(request.user.id if request.user.is_authenticated else None, board.id)
+
+        serializer = self.get_serializer(board)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['POST'], permission_classes = [IsAuthenticated], url_path='like')
     def like(self, request, pk=None):
         is_created = BoardService.toggle_like(request.user, pk)
