@@ -19,6 +19,12 @@ fixture
 docker-compose exec web python manage.py loaddata product.json
 docker-compose exec web python manage.py loaddata user
 
+데이터 save
+docker compose exec web python manage.py dumpdata --exclude auth.permission --exclude contenttypes --indent 2 -o db_clean_backup.json
+
+데이터 load
+docker compose exec web python manage.py loaddata db_all_backup.json
+
 ### shell 접속
 - docker compose exec web python manage.py shell
 
