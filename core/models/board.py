@@ -53,6 +53,10 @@ class Board(models.Model):
         auto_now_add=True, 
         verbose_name="생성일"
     )
+    views = models.PositiveIntegerField(
+        default=0,
+        verbose_name="누적 조회수"
+    )
     class Meta:
         verbose_name = "게시글"
         verbose_name_plural = "게시글 목록"

@@ -5,6 +5,6 @@ class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
         fields = [
-            'title', 'content', 'author', 'created_at'
+            'id', 'title', 'content', 'author', 'views', 'created_at'
         ]
-        read_only_fields = ['author']
+        read_only_fields = ['author', 'views']
