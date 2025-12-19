@@ -1,11 +1,13 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from ..serializers.board import BoardSerializer
-from ..models.board import Board
-from ..services.board import BoardService
+from core.serializers.board import BoardSerializer
+from core.models.board import Board
+from core.services.board import BoardService
 
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+
+from core.services.redis import RedisService
 
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
@@ -14,15 +16,6 @@ class BoardViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         게시글 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
-
-        사용 가능한 쿼리 파라미터:
-        - category: 카테고리 ID 또는 이름
-        - author: 작성자 ID 또는 username
-        - search: 제목 또는 내용 검색
-        - start_date: 시작 날짜 (YYYY-MM-DD)
-        - end_date: 종료 날짜 (YYYY-MM-DD)
-
-        예시: /boards/?category=1&search=강아지&start_date=2025-01-01
         """
         return BoardService.get_board_list(self.request.query_params)
 
@@ -43,3 +36,44 @@ class BoardViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_201_CREATED)
         
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['GET'], permission_classes = [IsAuthenticated], url_path='recent')
+    def recent(self, request):
+        """
+        현재 사용자가 최근에 본 게시글 목록을 반환합니다. (최대 20개)
+        """
+        board_ids = RedisService.get_user_recent_board_ids(request.user.id)
+        
+        if not board_ids:
+            return Response([])
+
+        # Redis 순서(최신순)를 유지하며 DB 조회
+        # PostgreSQL의 경우 Case When 또는 id__in + python sorting 방식 사용
+        boards = Board.objects.filter(id__in=board_ids)
+        board_dict = {str(b.id): b for b in boards}
+        ordered_boards = [board_dict[bid] for bid in board_ids if bid in board_dict]
+
+        serializer = self.get_serializer(ordered_boards, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'], url_path='popular')
+    def popular(self, request):
+        """
+        집계된 인기 게시글 목록을 반환합니다.
+        """
+        board_ids = RedisService.get_cached_popular_board_ids()
+        
+        if not board_ids:
+            # 캐시가 없을 경우 전체 조회수 순 폴백
+            boards = Board.objects.all().order_by('-views', '-created_at')[:10]
+        else:
+            boards = Board.objects.filter(id__in=board_ids)
+            board_dict = {str(b.id): b for b in boards}
+            ordered_boards = [
+                board_dict[bid] for bid in board_ids 
+                if bid in board_dict
+            ]
+            boards = ordered_boards
+
+        serializer = self.get_serializer(boards, many=True)
+        return Response(serializer.data)
