@@ -13,6 +13,8 @@ from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from celery.schedules import crontab
+
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -106,6 +108,13 @@ else:
         }
     }
 
+CELERY_BEAT_SCHEDULE = {
+    'update-popular-boards-hourly': {
+        'task': 'core.tasks.update_popular_boards_daily',
+        'schedule': crontab(minute=0), # 매 시간 정각 실행
+    },
+}
+
 print(DATABASES)
 
 # Password validation
@@ -187,32 +196,52 @@ TOSS_PAYMENT_KEY = os.environ.get('TOSS_PAYMENT_KEY')
 KAKAO_SECRET_KEY=os.environ.get('KAKAO_SECRET_KEY')
 
 # Logging Configuration
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '[{asctime}] {levelname} {name} - {message}',
             'style': '{',
         },
     },
     'handlers': {
         'payment_file': {
             'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'payment.log'),
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'payment.log'),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'task_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'task.log'),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
             'formatter': 'verbose',
         },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
         'payment': {
             'handlers': ['payment_file', 'console'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+        'task': {
+            'handlers': ['task_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
