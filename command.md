@@ -22,9 +22,19 @@ docker-compose exec web python manage.py loaddata user
 ### shell 접속
 - docker compose exec web python manage.py shell
 
-###
 ```python
 from core.tasks import update_popular_boards_daily
 update_popular_boards_daily()
 exit()
 ```
+
+### Redis 데이터 조회
+`docker compose exec redis redis-cli`
+13시 버킷 확인
+`ZRANGE board:views:H2025121913 0 -1 WITHSCORES`
+사용자 최근 본 글 확인
+`LRANGE user:1:recent 0 -1`
+최종 인기글 캐시 확인
+`GET board:popular:cache`
+TTL 남은 시간 확인
+`TTL board:views:H2025121913`

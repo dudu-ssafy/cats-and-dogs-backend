@@ -8,10 +8,17 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
 from core.services.redis import RedisService
+from rest_framework.pagination import PageNumberPagination
+
+class BoardPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
+    pagination_class = BoardPagination
 
     def get_queryset(self):
         """
@@ -36,6 +43,24 @@ class BoardViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_201_CREATED)
         
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['GET'], permission_classes = [IsAuthenticated], url_path='me')
+    def me(self, request):
+        """
+        현재 사용자가 작성한 게시글 목록을 반환합니다.
+        """
+        boards = Board.objects.filter(author=request.user)
+        serializer = self.get_serializer(boards, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['GET'], permission_classes = [IsAuthenticated], url_path='likes')
+    def likes(self, request):
+        """
+        현재 사용자가 좋아요한 게시글 목록을 반환합니다.
+        """
+        boards = Board.objects.filter(likes__user=request.user)
+        serializer = self.get_serializer(boards, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=['GET'], permission_classes = [IsAuthenticated], url_path='recent')
     def recent(self, request):

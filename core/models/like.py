@@ -14,6 +14,7 @@ class BoardLike(models.Model):
     board = models.ForeignKey(
         Board,
         on_delete=models.CASCADE,
+        related_name='likes',
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -34,6 +35,7 @@ class ShortsLike(models.Model):
     shorts = models.ForeignKey(
         Shorts,
         on_delete=models.CASCADE,
+        related_name='likes',
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
