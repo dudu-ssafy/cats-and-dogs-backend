@@ -22,4 +22,5 @@ COPY . /app/
 
 # 엔트리포인트 스크립트 설정
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
