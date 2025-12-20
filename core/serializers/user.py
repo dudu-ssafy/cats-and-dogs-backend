@@ -41,6 +41,4 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id',
             'username',
             'profile_image',
-            'last_login',
-            'date_joined',
         ]

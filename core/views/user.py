@@ -37,7 +37,10 @@ class UserViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             user = UserService.authenticate_user(**serializer.validated_data)
             token = UserService.get_token(user)
-            return Response(token)
+            return Response({
+                'token': token,
+                'user': UserDetailSerializer(user).data,
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'])

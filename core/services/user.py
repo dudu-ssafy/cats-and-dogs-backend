@@ -41,7 +41,6 @@ class UserService:
     @staticmethod
     def authenticate_user(email, password):
         user = authenticate(email=email, password=password)
-        print(user)
         if not user:
             raise AuthenticationFailed('로그인 정보가 일치하지 않습니다')
         return user
@@ -105,7 +104,6 @@ class AuthService:
         email = response.get("email")
         profile_image_url = response.get("profile_image")
 
-        # 로그인 및 회원가입
         user = User.objects.filter(email=email).first()
         if user:
             return UserService.get_token(user)
