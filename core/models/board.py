@@ -3,27 +3,10 @@ from django.conf import settings
 
 from pgvector.django import VectorField
 
-class BoardCategory(models.Model):
-    name = models.CharField(
-        max_length=50,
-        unique=True,
-        verbose_name='게시판 카테고리 이름'
-    )
-
-    class Meta:
-            verbose_name = "게시판 카테고리"
-            verbose_name_plural = "게시판 카테고리 목록"
-
-    def __str__(self):
-        return self.name
-
-
 class Board(models.Model):
-    category = models.ForeignKey(
-         BoardCategory,
-         on_delete=models.SET_NULL,
-         null=True,
-         verbose_name='카테고리'
+    category = models.CharField(
+        max_length=50,
+        verbose_name='카테고리'
     )
     title = models.CharField(
          max_length=200,

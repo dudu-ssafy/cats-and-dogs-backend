@@ -1,6 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from core.models.board import BoardCategory, Board  # 모델이 core 앱에 있다고 가정
+from core.models.board import Board  # 모델이 core 앱에 있다고 가정
 from rest_framework.test import APIRequestFactory, force_authenticate
 from ..views.board import BoardViewSet
 from rest_framework.request import Request 

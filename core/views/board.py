@@ -19,6 +19,12 @@ class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
     pagination_class = BoardPagination
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve', 'popular']:
+            return []
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         """
@@ -28,6 +34,12 @@ class BoardViewSet(viewsets.ModelViewSet):
             self.request.query_params,
             self.request.user
         )
+
+    def perform_create(self, serializer):
+        """
+        게시글 저장 시 현재 로그인한 사용자를 작성자로 설정합니다.
+        """
+        serializer.save(author=self.request.user)
 
     def retrieve(self, request, *args, **kwargs):
         board = self.get_object()

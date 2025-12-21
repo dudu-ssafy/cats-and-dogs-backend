@@ -4,7 +4,7 @@ import requests
 import time
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from core.models.board import Board, BoardCategory
+from core.models.board import Board
 from core.models.pet import Pet, Breed, BreedKnowledge, AnimalType
 from core.models.shop import Product, Category
 from core.models.shorts import Shorts
@@ -80,7 +80,7 @@ class Command(BaseCommand):
 
     def create_realistic_boards(self, user, api_key):
         self.stdout.write('Creating realistic Boards...')
-        cat, _ = BoardCategory.objects.get_or_create(name='자유게시판')
+        cat, _ = ('free', True)
         
         # 50 Realistic Community Posts
         posts = [

@@ -1,6 +1,6 @@
 from .user import User
 from .pet import Pet
-from .board import Board, BoardCategory
+from .board import Board
 from .shorts import Shorts
 from .like import BoardLike, ShortsLike
 from .shop import Category,Product,ProductOption

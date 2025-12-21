@@ -1,5 +1,5 @@
 from django.templatetags.static import static
-from ..models.board import Board, BoardCategory
+from ..models.board import Board
 from ..models.like import BoardLike
 from django.shortcuts import get_object_or_404
 from django.db.models import F
@@ -35,7 +35,7 @@ class BoardService:
                 if category.isdigit():
                     queryset = queryset.filter(category_id=category)
                 else:
-                    queryset = queryset.filter(category__name__icontains=category)
+                    queryset = queryset.filter(category=category)
 
         author = params.get('author')
         if author:

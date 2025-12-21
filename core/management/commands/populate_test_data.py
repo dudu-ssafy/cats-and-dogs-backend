@@ -4,7 +4,7 @@ import random
 import time
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from core.models.board import Board, BoardCategory
+from core.models.board import Board
 from core.models.pet import Pet, Breed, AnimalType
 from core.models.shop import Product, Category
 from core.models.shorts import Shorts
@@ -74,7 +74,6 @@ class Command(BaseCommand):
 
     def create_realistic_boards(self, user, api_key):
         self.stdout.write('Creating Boards...')
-        cat, _ = BoardCategory.objects.get_or_create(name='자유게시판')
         
         posts = [
             ("강아지가 자꾸 발을 핥아요", "산책 다녀와서 발을 닦아줬는데도 계속 핥아서 발바닥이 빨개졌어요. 습진일까요? 병원 가기 전에 연고 발라줘도 될까요? 경험 있으신 분 조언 부탁드립니다."),
@@ -93,7 +92,7 @@ class Command(BaseCommand):
             if Board.objects.filter(title=title).exists():
                 continue
             embedding = self.get_embedding(f"{title} {content}", api_key)
-            Board.objects.create(title=title, content=content, category=cat, author=user, embedding=embedding)
+            Board.objects.create(title=title, content=content, category='free', author=user, embedding=embedding)
             self.stdout.write(f"  Board created: {title}")
 
     def create_realistic_breeds_and_pets(self, user, api_key):

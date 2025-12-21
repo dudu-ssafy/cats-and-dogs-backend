@@ -2,19 +2,29 @@ from rest_framework import serializers
 from ..models.board import Board
 
 class BoardSerializer(serializers.ModelSerializer):
-    categoryName = serializers.CharField(source='category.name', read_only=True)
     author = serializers.CharField(source='author.username', read_only=True)
     date = serializers.SerializerMethodField()
     isLiked = serializers.SerializerMethodField()
     isNew = serializers.SerializerMethodField()
+    likesCount = serializers.SerializerMethodField()
+
+    authorProfileImg = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
         fields = [
-            'id', 'category', 'categoryName', 'title', 'content', 
-            'author', 'views', 'date', 'isLiked', 'isNew'
+            'id', 'category', 'title', 'content', 
+            'author', 'authorProfileImg', 'views', 'date', 'isLiked', 'isNew', 'likesCount'
         ]
-        read_only_fields = ['author', 'views']
+        read_only_fields = ['author', 'views', 'authorProfileImg']
+
+    def get_authorProfileImg(self, obj):
+        if obj.author and hasattr(obj.author, 'profile_img') and obj.author.profile_img:
+            return obj.author.profile_img.url
+        return None
+
+    def get_likesCount(self, obj):
+        return obj.like_users.count()
 
     def get_isLiked(self, obj):
         request = self.context.get('request')
