@@ -44,3 +44,6 @@ exit()
 `GET board:popular:cache`
 TTL 남은 시간 확인
 `TTL board:views:H2025121913`
+
+### db 용량 조회
+docker exec -it django_pg_db du -sh /var/lib/postgresql/data/
