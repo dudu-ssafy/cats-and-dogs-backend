@@ -30,4 +30,4 @@ class ChatSessionCreateSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     class Meta:
         model = ChatSession
-        fields = ['title', 'history', 'user']
+        fields = ['id', 'title', 'history', 'user']

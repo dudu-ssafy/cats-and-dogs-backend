@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from core.models.chat import ChatSession
 from core.serializers.chat import ChatSessionSerializer, ChatSessionDetailSerializer, ChatSessionCreateSerializer
+from core.services.chat import ChatService
 
 class ChatSessionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -20,9 +21,11 @@ class ChatSessionViewSet(viewsets.ModelViewSet):
             return ChatSessionCreateSerializer
         return ChatSessionSerializer
 
-    def create(self, *args, **kwargs):
-        serializer = self.get_serializer(data=self.request.data)
-        if serializer.is_valid():
-            serializer.save(user=self.request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            session, created = ChatService.upsert_chat_session(request.user, serializer.validated_data)
+            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            return Response({'id': session.id}, status=status_code)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
