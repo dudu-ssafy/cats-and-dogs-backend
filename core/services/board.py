@@ -7,15 +7,35 @@ from django.db.models import F
 class BoardService:
 
     @staticmethod
-    def get_board_list(params: dict):
+    def get_board_list(params: dict, user=None):
         queryset = Board.objects.all()
 
-        category = params.get('category')
-        if category:
-            if category.isdigit():
-                queryset = queryset.filter(category_id=category)
+        filter_type = params.get('type')
+        
+        if filter_type == 'hot':
+            from core.services.redis import RedisService
+            board_ids = RedisService.get_cached_popular_board_ids()
+            if not board_ids:
+                # 캐시가 없을 경우 조회수가 100 이상인 글을 최신순으로 반환하거나 
+                # 단순히 조회수 높은 순으로 폴백
+                queryset = queryset.filter(views__gte=100).order_by('-views', '-created_at')
             else:
-                queryset = queryset.filter(category__name__icontains=category)
+                # Redis의 ID 순서 유지 (PostgreSQL Field-like sorting)
+                from django.db.models import Case, When
+                preserved = Case(*[When(id=pk, then=pos) for pos, pk in enumerate(board_ids)])
+                queryset = queryset.filter(id__in=board_ids).order_by(preserved)
+        elif filter_type == 'my-posts' and user and user.is_authenticated:
+            queryset = queryset.filter(author=user)
+        elif filter_type == 'liked-posts' and user and user.is_authenticated:
+            queryset = queryset.filter(likes__user=user)
+        else:
+            # 일반 카테고리 필터링
+            category = params.get('category')
+            if category:
+                if category.isdigit():
+                    queryset = queryset.filter(category_id=category)
+                else:
+                    queryset = queryset.filter(category__name__icontains=category)
 
         author = params.get('author')
         if author:
@@ -39,7 +59,10 @@ class BoardService:
         if end_date:
             queryset = queryset.filter(created_at__lte=end_date)
 
-        return queryset.order_by('-created_at')
+        if filter_type != 'hot':
+            queryset = queryset.order_by('-created_at')
+            
+        return queryset
 
     @staticmethod
     def update_views(board_id):

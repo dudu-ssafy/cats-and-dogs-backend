@@ -24,7 +24,10 @@ class BoardViewSet(viewsets.ModelViewSet):
         """
         게시글 목록을 조회합니다. 쿼리 파라미터로 필터링 가능합니다.
         """
-        return BoardService.get_board_list(self.request.query_params)
+        return BoardService.get_board_list(
+            self.request.query_params,
+            self.request.user
+        )
 
     def retrieve(self, request, *args, **kwargs):
         board = self.get_object()
