@@ -51,7 +51,7 @@ docker exec -it django_pg_db du -sh /var/lib/postgresql/data/
 
 docker-compose exec web python manage.py shell
 ```
-from core.user.models import *
+from core.models import User
 User.objects.get(email='chlendyd7@naver.com').delete()
 exit()
 ```
