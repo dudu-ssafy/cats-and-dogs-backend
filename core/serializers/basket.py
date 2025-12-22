@@ -64,9 +64,19 @@ class BasketItemAddSerializer(serializers.ModelSerializer):
     """
     장바구니 항목 추가용 시리얼라이저
     """
-    product_option_id = serializers.IntegerField(write_only=True, required=True)
+    product_option_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    product_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     quantity = serializers.IntegerField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        product_option_id = attrs.get('product_option_id')
+        product_id = attrs.get('product_id')
+        
+        if not product_option_id and not product_id:
+            raise serializers.ValidationError("product_option_id 또는 product_id 중 하나는 필수입니다.")
+            
+        return attrs
 
     class Meta:
         model = BasketItem
-        fields = ['product_option_id', 'quantity']
+        fields = ['product_option_id', 'product_id', 'quantity']
