@@ -8,15 +8,30 @@ class BasketItemSerializer(serializers.ModelSerializer):
     """
     장바구니 항목 생성 및 상세 조회용 시리얼라이저
     """
-    product_name = serializers.CharField(source='option.product.title', read_only=True)
-    option_value = serializers.CharField(source='option.value', read_only=True)
-    option_id = serializers.IntegerField(write_only=True, required=True)
+    product_name = serializers.SerializerMethodField()
+    option_value = serializers.SerializerMethodField()
+    option_id = serializers.IntegerField(write_only=True, required=False)
+
+    price_at_addition = serializers.SerializerMethodField()
 
     class Meta:
         model = BasketItem
         fields = ['id', 'option_id', 'quantity', 
                   'product_name', 'option_value', 'price_at_addition']
-        read_only_fields = ['id', 'price_at_addition', 'product_name', 'option_value']
+        read_only_fields = ['id', 'product_name', 'option_value']
+
+    def get_price_at_addition(self, obj):
+        # 현재 판매가(기본가 + 옵션가)를 반환
+        base = obj.product.base_price
+        add = obj.option.additional_price if obj.option else 0
+        return base + add
+
+    def get_product_name(self, obj):
+        # 옵션이 있으면 옵션 통해서, 없으면 직접 제품에서 가져옴
+        return obj.option.product.title if obj.option else obj.product.title
+
+    def get_option_value(self, obj):
+        return obj.option.value if obj.option else "기본"
 
     def validate_option_id(self, value):
         """option_id 필드에 대한 유효성 검사 (존재 여부 및 재고 확인)"""
@@ -55,7 +70,12 @@ class BasketSerializer(serializers.ModelSerializer):
         total_price = 0
         items = obj.items.all()
         for item in items:
-            total_price += (item.product.base_price + item.option.additional_price) * item.quantity
+            if item.option:
+                price = item.option.product.base_price + item.option.additional_price
+            else:
+                price = item.product.base_price
+            
+            total_price += price * item.quantity
 
         return total_price
 

@@ -58,6 +58,16 @@ class BasketService:
 
         return {"product_id": product.id, "option_id": option.id if option else None, "new_quantity": quantity}
 
+    def remove_item_from_basket(self, user, item_id):
+        """장바구니 항목 삭제"""
+        basket = self.get_user_basket(user)
+        try:
+            item = BasketItem.objects.get(id=item_id, basket=basket)
+            item.delete()
+            return True
+        except BasketItem.DoesNotExist:
+            return False
+
     def get_user_cart_items(self, user):
         """
         장바구니 항목 목록을 조회합니다.
