@@ -47,3 +47,11 @@ TTL 남은 시간 확인
 
 ### db 용량 조회
 docker exec -it django_pg_db du -sh /var/lib/postgresql/data/
+
+
+docker-compose exec web python manage.py shell
+```
+from core.user.models import *
+User.objects.get(email='chlendyd7@naver.com').delete()
+exit()
+```

@@ -198,9 +198,10 @@ SPECTACULAR_SETTINGS = {
 }
 
 #Oauth Login
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
 NAVER_CLIENT_ID = os.environ.get('NAVER_CLIENT_ID')
 NAVER_CLIENT_SECRET = os.environ.get('NAVER_CLIENT_SECRET')
-NAVER_REDIRECT_URI='http://127.0.0.1:8000/api/v1/users/oauth_login_callback/?to=naver'
+NAVER_REDIRECT_URI=os.environ.get('NAVER_REDIRECT_URI')
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI')

@@ -80,7 +80,6 @@ class AuthService:
         client_id = settings.NAVER_CLIENT_ID
         client_secret = settings.NAVER_CLIENT_SECRET
         redirect_uri = settings.NAVER_REDIRECT_URI
-
         token_request = requests.post(
             "https://nid.naver.com/oauth2.0/token",
             data={
@@ -98,17 +97,17 @@ class AuthService:
         profile_request = requests.get(
             "https://openapi.naver.com/v1/nid/me",
             headers={"Authorization": f"Bearer {access_token}"},
-        )
-        profile_json = profile_request.json()
-        response = profile_json.get("response")
+        ).json()
+        response = profile_request.get("response")
         email = response.get("email")
         profile_image_url = response.get("profile_image")
+        username = response.get("name")
 
         user = User.objects.filter(email=email).first()
         if user:
             return UserService.get_token(user)
         else:
-            user = User.objects.create(email=email, profile_image=profile_image_url)
+            user = User.objects.create(username=username, email=email, profile_image=profile_image_url)
             return UserService.get_token(user)
 
     @staticmethod

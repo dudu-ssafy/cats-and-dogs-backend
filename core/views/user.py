@@ -59,16 +59,24 @@ class UserViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def oauth_login_callback(self, request):
-        if request.GET.get('to') == 'naver':
-            return Response(AuthService.handle_naver_callback(
+        provider = request.GET.get('to')
+        if provider == 'naver':
+            tokens = AuthService.handle_naver_callback(
                 code=request.GET.get('code'),
                 state=request.GET.get('state')
-            ))
-        elif request.GET.get('to') == 'google':
-            return Response(AuthService.handle_google_callback(
+            )
+        elif provider == 'google':
+            tokens = AuthService.handle_google_callback(
                 code=request.GET.get('code'),
                 state=request.GET.get('state')
-            ))
+            )
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # 프론트엔드 로그인 페이지로 토큰과 함께 리다이렉트
+        frontend_login_url = f"{settings.FRONTEND_URL}/login"
+        redirect_url = f"{frontend_login_url}?access={tokens['access']}&refresh={tokens['refresh']}"
+        return redirect(redirect_url)
 
 
     @extend_schema(
