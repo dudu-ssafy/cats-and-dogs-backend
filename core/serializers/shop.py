@@ -13,14 +13,19 @@ class ProductOptionSerializer(serializers.ModelSerializer):
 class ProductListSerializer(serializers.ModelSerializer):
     # Category의 이름은 목록에서도 필요하므로 그대로 둡니다.
     category_name = serializers.CharField(source='category.name', read_only=True)
+    main_image = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         # 목록 화면에 필요한 최소한의 필드만 포함합니다.
         fields = [
             'id', 'category_name', 'title', 'base_price', 
-            'is_sale' # description, created_at, options 제외
+            'is_sale', 'main_image' # description, created_at, options 제외
         ]
+
+    def get_main_image(self, obj):
+        image = obj.images.filter(is_main=True).first()
+        return image.image_url if image else None
 
 # -----------------------------------------------------
 # 3. 상세 조회용 Serializer (기존 ProductSerializer 이름 변경)
