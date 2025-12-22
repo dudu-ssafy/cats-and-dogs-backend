@@ -20,13 +20,30 @@ class BasketService:
         """
 
         basket = self.get_user_basket(user)
-        option = ProductOption.objects.get(id=data.get('product_option_id'))
+        option_id = data.get('product_option_id')
+        product_id = data.get('product_id')
         quantity = data.get('quantity')
-        product = option.product
+        
+        option = None
+        product = None
+
+        if option_id:
+            option = ProductOption.objects.get(id=option_id)
+            product = option.product
+        elif product_id:
+            # 옵션 없이 상품 ID로 직접 추가하는 경우
+            from core.models.shop import Product
+            product = Product.objects.get(id=product_id)
+        
+        # 상품/옵션 식별 불가 시 에러 (Serializer에서 걸렀겠지만 안전장치)
+        if not product:
+             raise APIException("상품을 찾을 수 없습니다.")
+
         try:
+            # 기존 항목 검색 조건: basket, product, option(nullable)
             item = BasketItem.objects.get(
                 basket=basket,
-                option=option,
+                option=option, # None일 수 있음
                 product=product
             )
             item.quantity += quantity
@@ -34,12 +51,22 @@ class BasketService:
         except BasketItem.DoesNotExist:
             item = BasketItem.objects.create(
                 basket=basket,
-                option=option,
+                option=option, # None일 수 있음
                 product=product,
                 quantity=quantity
             )
 
-        return {"option_id": option.id, "new_quantity": quantity}
+        return {"product_id": product.id, "option_id": option.id if option else None, "new_quantity": quantity}
+
+    def remove_item_from_basket(self, user, item_id):
+        """장바구니 항목 삭제"""
+        basket = self.get_user_basket(user)
+        try:
+            item = BasketItem.objects.get(id=item_id, basket=basket)
+            item.delete()
+            return True
+        except BasketItem.DoesNotExist:
+            return False
 
     def get_user_cart_items(self, user):
         """
