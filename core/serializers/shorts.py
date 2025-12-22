@@ -1,4 +1,5 @@
 from core.models.shorts import Shorts, ShortsComment
+from core.models.like import ShortsLike
 from rest_framework import serializers
 from core.serializers.user import UserSimpleSerializer
 
@@ -17,6 +18,13 @@ class ShortsSerializer(serializers.ModelSerializer):
         if user.is_authenticated:
             return obj.likes.filter(user=user).exists()
         return False
+
+class ShortsSimpleSerializer(serializers.ModelSerializer):
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+
+    class Meta:
+        model = Shorts
+        fields = ['id', 'title', 'thumbnail_url', 'likes_count']
 
 class ShortsDetailSerializer(serializers.ModelSerializer):
     author = UserSimpleSerializer(read_only=True)

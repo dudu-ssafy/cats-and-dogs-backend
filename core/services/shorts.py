@@ -24,7 +24,7 @@ class ShortsService:
     @staticmethod
     def create_comment(user, shorts_id, content):
         shorts = get_object_or_404(Shorts, id=shorts_id)
-        comment = ShortsComment.objects.create(user=user, shorts=shorts, content=content)
+        comment = ShortsComment.objects.create(author=user, shorts=shorts, content=content)
         return comment
 
     @staticmethod

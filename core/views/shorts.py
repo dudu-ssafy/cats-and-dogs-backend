@@ -43,5 +43,6 @@ class ShortsViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def find_like_shorts(self, request):
         shorts_list = ShortsService.find_like_shorts(request.user)
-        serializer = ShortsSerializer(shorts_list, many=True)
+        from core.serializers.shorts import ShortsSimpleSerializer
+        serializer = ShortsSimpleSerializer(shorts_list, many=True)
         return Response(serializer.data)
