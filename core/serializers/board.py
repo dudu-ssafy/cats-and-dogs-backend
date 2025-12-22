@@ -3,36 +3,49 @@ from ..models.board import Board
 
 class BoardSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source='author.username', read_only=True)
+    category_name = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
-    isLiked = serializers.SerializerMethodField()
-    isNew = serializers.SerializerMethodField()
-    likesCount = serializers.SerializerMethodField()
-
-    authorProfileImg = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    is_new = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    author_profile_img = serializers.SerializerMethodField()
 
     class Meta:
         model = Board
         fields = [
-            'id', 'category', 'title', 'content', 
-            'author', 'authorProfileImg', 'views', 'date', 'isLiked', 'isNew', 'likesCount'
+            'id', 'category', 'category_name', 'title', 'content', 
+            'author', 'author_profile_img', 'views', 'date', 'is_liked', 'is_new', 'likes_count', 'comment_count'
         ]
-        read_only_fields = ['author', 'views', 'authorProfileImg']
+        read_only_fields = ['author', 'views', 'author_profile_img']
 
-    def get_authorProfileImg(self, obj):
-        if obj.author and hasattr(obj.author, 'profile_img') and obj.author.profile_img:
-            return obj.author.profile_img.url
+    def get_category_name(self, obj):
+        mapping = {
+            'free': '자유 수다',
+            'qna': '질문/답변',
+            'info': '정보 공유'
+        }
+        return mapping.get(obj.category, obj.category)
+
+    def get_author_profile_img(self, obj):
+        if obj.author and hasattr(obj.author, 'profile_image') and obj.author.profile_image:
+            return obj.author.profile_image
         return None
 
-    def get_likesCount(self, obj):
+    def get_likes_count(self, obj):
         return obj.like_users.count()
 
-    def get_isLiked(self, obj):
+    def get_comment_count(self, obj):
+        # BoardComment 모델이 아직 정의되지 않았을 수 있으므로 0 반환 또는 관련 필드 확인
+        return 0 
+
+    def get_is_liked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
 
-    def get_isNew(self, obj):
+    def get_is_new(self, obj):
         from django.utils import timezone
         import datetime
         return obj.created_at >= timezone.now() - datetime.timedelta(days=1)

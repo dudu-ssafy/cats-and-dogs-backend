@@ -6,7 +6,9 @@ from pgvector.django import VectorField
 class Shorts(models.Model):
     title = models.CharField(
         max_length=200,
-        verbose_name='제목'
+        verbose_name='제목',
+        null=True,
+        blank=True,
     )
     description = models.TextField(
         '설명',
@@ -19,7 +21,9 @@ class Shorts(models.Model):
         blank=True,
     )
     video_url = models.URLField(
-        verbose_name='비디오 URL'
+        verbose_name='비디오 URL',
+        null=True,
+        blank=True,
     )
     embedding = VectorField(
         dimensions=1536,
@@ -48,7 +52,8 @@ class Shorts(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.title
+        return self.title if self.title else '제목 없음'
+
 
 
 class ShortsComment(models.Model):

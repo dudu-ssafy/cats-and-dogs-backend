@@ -106,7 +106,154 @@ def update_popular_boards_daily():
     logger.info(f"[Task Success] Popular boards updated. Top 10: {top_ids[:10]}")
     return f"Success: {len(top_ids[:10])} boards cached"
 
-# 구글 클라우드 프로필 이미지 업로드
+@shared_task(bind=True, max_retries=3)
+def process_shorts_video(self, shorts_id, local_file_path, original_filename):
+    """
+    쇼츠 비디오를 처리합니다: GCS 업로드, 썸네일 추출, Gemini를 이용한 설명 생성, 임베딩 생성.
+    """
+    from core.models.shorts import Shorts
+    from core.services.util import process_embedding
+    import subprocess
+    import imageio_ffmpeg
+    import io
+    import os
+    
+    logger = logging.getLogger('task')
+    logger.info(f"[Task Start] Processing video for Shorts {shorts_id}")
+
+    try:
+        try:
+            shorts = Shorts.objects.get(id=shorts_id)
+        except Shorts.DoesNotExist:
+            # 트랜잭션 커밋 대기를 위해 재시도
+            logger.warning(f"Shorts {shorts_id} not found, retrying... (Attempt {self.request.retries})")
+            raise self.retry(countdown=2)
+        # 0. 비디오 압축 및 최적화 (FFmpeg 사용)
+        # MoviePy 버전 이슈로 인해 더 안정적인 FFmpeg subprocess 호출 방식으로 전환합니다.
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        compressed_path = local_file_path + "_compressed.mp4"
+        thumb_path = local_file_path + "_thumb.jpg"
+        
+        logger.info(f"Processing video with FFmpeg: {local_file_path}")
+
+        # 1. 비디오 압축 및 리사이징 (너비 최대 480px, 짝수 높이 보장, 비트레이트 제한)
+        compress_cmd = [
+            ffmpeg_exe, '-i', local_file_path,
+            '-vf', "scale='min(480,iw)':-2",
+            '-vcodec', 'libx264', '-b:v', '1000k',
+            '-movflags', '+faststart', # 웹 스트리밍 최적화
+            '-acodec', 'aac', '-y', compressed_path
+        ]
+        
+        result = subprocess.run(compress_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"FFmpeg compression failed: {result.stderr}")
+            raise Exception(f"FFmpeg compression failed: {result.stderr[:200]}")
+
+        # 2. 썸네일 추출 (0초 지점)
+        thumb_cmd = [
+            ffmpeg_exe, '-i', local_file_path,
+            '-ss', '00:00:00', '-vframes', '1',
+            '-q:v', '2', '-y', thumb_path
+        ]
+        
+        result = subprocess.run(thumb_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.error(f"FFmpeg thumbnail failed: {result.stderr}")
+            raise Exception(f"FFmpeg thumbnail extraction failed")
+
+        with open(thumb_path, 'rb') as f:
+            thumb_io = io.BytesIO(f.read())
+        
+        if os.path.exists(thumb_path):
+            os.remove(thumb_path)
+
+        # 1. GCS 업로드 (압축된 비디오 및 썸네일)
+        storage_client = storage.Client.from_service_account_json(settings.GS_CREDENTIALS)
+        bucket = storage_client.bucket(settings.GS_BUCKET_NAME)
+        
+        # 비디오 업로드 (압축본)
+        video_blob = bucket.blob(f"shorts/video_{shorts_id}/{original_filename}")
+        video_blob.upload_from_filename(compressed_path)
+        video_url = video_blob.public_url
+
+        # 썸네일 업로드
+        thumb_blob = bucket.blob(f"shorts/thumb_{shorts_id}/thumbnail.jpg")
+        thumb_blob.upload_from_file(thumb_io, content_type='image/jpeg')
+        thumbnail_url = thumb_blob.public_url
+
+        # 2. Gemini를 이용한 제목/설명 생성 (FastAPI 스타일 참조)
+        gms_key = os.environ.get('GMS_KEY')
+        title = shorts.title
+        description = shorts.description
+
+        if gms_key and (not title or not description):
+            from google import genai
+            from google.genai.types import Part
+
+            # FastAPI 서버와 동일하게 GMS 프록시를 이용한 설정
+            client = genai.Client(
+                api_key=gms_key,
+                http_options={"base_url": "https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com"}
+            )
+            
+            # 압축된 비디오를 읽어서 Gemini에 전송
+            with open(compressed_path, 'rb') as f:
+                video_data = f.read()
+            
+            prompt = "이 반려동물 쇼츠 영상을 보고 적절한 제목과 1-2문장의 설명을 작성해줘. JSON 형식으로 {'title': '...', 'description': '...'} 처럼 응답해줘."
+            
+            try:
+                # SDK v2 스타일 호출
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=[
+                        Part.from_bytes(data=video_data, mime_type="video/mp4"),
+                        prompt
+                    ]
+                )
+                
+                import json
+                # 결과값 파싱
+                res_text = response.text.replace('```json', '').replace('```', '').strip()
+                res_data = json.loads(res_text)
+
+                if not title: title = res_data.get('title', f"반려동물 쇼츠 {shorts_id}")
+                if not description: description = res_data.get('description', "귀여운 반려동물 영상입니다.")
+                
+            except Exception as e:
+                logger.error(f"Gemini Processing Error: {e}")
+                if not title: title = f"반려동물 쇼츠 {shorts_id}"
+                if not description: description = "귀여운 반려동물 영상입니다."
+
+        # 4. 임베딩 생성
+        embedding = process_embedding(title, description)
+
+        # 5. DB 업데이트
+        shorts.video_url = video_url
+        shorts.thumbnail_url = thumbnail_url
+        shorts.title = title
+        shorts.description = description
+        shorts.embedding = embedding
+        shorts.save()
+
+        if os.path.exists(local_file_path):
+            os.remove(local_file_path)
+        if 'compressed_path' in locals() and os.path.exists(compressed_path):
+            os.remove(compressed_path)
+
+        logger.info(f"[Task Success] Shorts {shorts_id} processed successfully")
+        return f"Success: {shorts_id}"
+
+    except Exception as e:
+        logger.error(f"[Task Failed] Shorts {shorts_id}: {str(e)}")
+        if os.path.exists(local_file_path):
+            os.remove(local_file_path)
+        if 'compressed_path' in locals() and os.path.exists(compressed_path):
+            os.remove(compressed_path)
+        return f"Error: {str(e)}"
+
+
 @shared_task
 def upload_user_image_to_gcs(user_id, local_file_path, original_filename):
     """
