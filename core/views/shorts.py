@@ -27,8 +27,13 @@ class ShortsViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def like(self, request, pk):
-        ShortsService.toggle_like(request.user, pk)
-        return Response(status=status.HTTP_200_OK)
+        is_liked = ShortsService.toggle_like(request.user, pk)
+        from core.models.shorts import Shorts
+        shorts = Shorts.objects.get(id=pk)
+        return Response({
+            "is_liked": is_liked,
+            "likes": shorts.likes.count()
+        })
 
     @action(detail=True, methods=['post'])
     def comment(self, request, pk):
