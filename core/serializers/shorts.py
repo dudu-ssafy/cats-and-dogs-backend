@@ -4,10 +4,19 @@ from core.serializers.user import UserSimpleSerializer
 
 class ShortsSerializer(serializers.ModelSerializer):
     author = UserSimpleSerializer(read_only=True)
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+    comments_count = serializers.IntegerField(source='comments.count', read_only=True)
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Shorts
-        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author']
+        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author', 'likes_count', 'comments_count', 'is_liked']
+
+    def get_is_liked(self, obj):
+        user = self.context.get('request').user
+        if user.is_authenticated:
+            return obj.likes.filter(user=user).exists()
+        return False
 
 class ShortsDetailSerializer(serializers.ModelSerializer):
     author = UserSimpleSerializer(read_only=True)

@@ -26,3 +26,7 @@ class ShortsService:
         shorts = get_object_or_404(Shorts, id=shorts_id)
         comment = ShortsComment.objects.create(user=user, shorts=shorts, content=content)
         return comment
+
+    @staticmethod
+    def find_like_shorts(user):
+        return user.like_shorts.all()
