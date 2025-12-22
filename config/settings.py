@@ -266,5 +266,17 @@ LOGGING = {
 
 CELERY_BROKER_URL = 'redis://redis:6379/0'
 CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+
+GS_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'env', 'google-client-key.json')
+
+if os.path.exists(GS_CREDENTIALS_PATH):
+    GS_CREDENTIALS = GS_CREDENTIALS_PATH
+    DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+    GS_BUCKET_NAME = os.environ.get('GS_BUCKET_NAME')
+    GS_QUERYSTRING_AUTH = False
+    MEDIA_URL = f'https://storage.googleapis.com/{GS_BUCKET_NAME}/'
+else:
+    raise Exception('GS_CREDENTIALS_PATH does not exist') 
+
 # CELERY_ACCEPT_CONTENT = ['json']
 # CELERY_TASK_SERIALIZER = 'json'

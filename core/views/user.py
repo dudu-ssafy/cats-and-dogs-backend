@@ -9,6 +9,10 @@ from core.services.user import UserService
 from django.shortcuts import redirect
 import requests
 from core.services.user import AuthService
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from core.tasks import upload_user_image_to_gcs
+
 
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
@@ -111,3 +115,24 @@ class UserViewSet(viewsets.ViewSet):
         
         serializer = UserDetailSerializer(updated_user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='profile_image_upload')
+    def profile_image_upload(self, request):
+        if request.method == 'POST':
+            if not request.FILES.get('image'):
+                print(request.FILES)
+                return Response({'message': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+            image_file = request.FILES['image']
+            user = request.user
+
+            # Celery 작업을 위해 로컬 프로젝트 내의 tmp 폴더에 임시 저장
+            from django.core.files.storage import FileSystemStorage
+            import os
+            fs = FileSystemStorage(location=os.path.join(settings.BASE_DIR, 'tmp'))
+            filename = fs.save(f'{user.id}_{image_file.name}', ContentFile(image_file.read()))
+            full_path = fs.path(filename)
+            
+            task = upload_user_image_to_gcs.delay(user.id, full_path, image_file.name)
+
+            return Response({"task_id": task.id, "message": "Upload started"}, status=status.HTTP_200_OK)        
+        return Response({'message': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)

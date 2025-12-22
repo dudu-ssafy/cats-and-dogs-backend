@@ -3,7 +3,10 @@ from celery import shared_task
 from django.db import transaction
 from .models import Order, Payment, Basket
 from .services.payment import PaymentService
-
+from google.cloud import storage
+from core.models import User
+from django.conf import settings
+import os
 
 @shared_task
 def process_kakao_payment_approval(pg_token, tid, merchant_uid, partner_user_id):
@@ -102,3 +105,29 @@ def update_popular_boards_daily():
 
     logger.info(f"[Task Success] Popular boards updated. Top 10: {top_ids[:10]}")
     return f"Success: {len(top_ids[:10])} boards cached"
+
+# 구글 클라우드 프로필 이미지 업로드
+@shared_task
+def upload_user_image_to_gcs(user_id, local_file_path, original_filename):
+    """
+    구글 클라우드에 사용자 프로필 이미지를 업로드합니다.
+    """
+    logger = logging.getLogger('task')
+    logger.info(f"[Task Start] Uploading user image to GCS for user {user_id}")
+
+    client = storage.Client.from_service_account_json(settings.GS_CREDENTIALS)
+    bucket = client.bucket(settings.GS_BUCKET_NAME)
+    blob_name = f"profiles/user_{user_id}/{original_filename}"
+    blob = bucket.blob(blob_name)
+    
+    blob.upload_from_filename(local_file_path)
+    ser = User.objects.get(id=user_id)
+    ser.profile_image = blob.public_url # 공개 URL 저장
+    ser.save()
+
+    try:
+        os.remove(local_file_path)
+        return f"Upload Success: {ser.profile_image}"
+    except Exception as e:
+        return f"Delete File Failed: {str(e)}"
+
