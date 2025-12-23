@@ -2,6 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from pgvector.django import CosineDistance
+from django.db.models import Q, Case, When, Value, IntegerField
+
 import os
 import requests
 
@@ -53,10 +55,18 @@ class VectorSearchTestView(APIView):
             distance=CosineDistance('embedding', embedding)
         ).order_by('distance')[:5]
 
-        # Board (5개)
-        board_results = Board.objects.annotate(
+        # Board (5개) - 제목 매칭 > 내용 매칭 > 벡터 유사도 순 정렬
+        board_results = Board.objects.filter(
+            Q(title__icontains=query_text) | Q(content__icontains=query_text)
+        ).annotate(
+            priority=Case(
+                When(title__icontains=query_text, then=Value(1)),
+                When(content__icontains=query_text, then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
             distance=CosineDistance('embedding', embedding)
-        ).order_by('distance')[:5]
+        ).order_by('priority', 'distance')[:5]
 
         # Product (4개)
         product_results = Product.objects.annotate(
