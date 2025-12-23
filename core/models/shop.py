@@ -45,7 +45,14 @@ class Product(models.Model):
     )
     is_sale = models.BooleanField(
         '판매 중 여부',
-        default=False
+        default=True # 기본값을 판매중으로 변경
+    )
+    detail_image_url = models.URLField(
+        '상세 이미지 URL',
+        max_length=2000, 
+        blank=True, 
+        null=True,
+        help_text='상세 설명에 사용할 긴 이미지 주소'
     )
     created_at = models.DateTimeField(
         '등록일',
@@ -113,7 +120,8 @@ class ProductImage(models.Model):
         verbose_name='상품'
     )
     image_url = models.URLField(
-        '이미지 URL'
+        '이미지 URL',
+        max_length=2000
     )
     is_main = models.BooleanField(
         '대표 이미지 여부',
