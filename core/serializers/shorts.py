@@ -1,4 +1,5 @@
 from core.models.shorts import Shorts, ShortsComment
+from core.models.like import ShortsLike
 from rest_framework import serializers
 from core.serializers.user import UserSimpleSerializer
 
@@ -10,7 +11,7 @@ class ShortsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shorts
-        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author', 'likes_count', 'comments_count', 'is_liked']
+        fields = ['id', 'title', 'thumbnail_url', 'video_url', 'author', 'likes_count', 'comments_count', 'is_liked']
 
     def get_is_liked(self, obj):
         user = self.context.get('request').user
@@ -18,13 +19,20 @@ class ShortsSerializer(serializers.ModelSerializer):
             return obj.likes.filter(user=user).exists()
         return False
 
+class ShortsSimpleSerializer(serializers.ModelSerializer):
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+
+    class Meta:
+        model = Shorts
+        fields = ['id', 'title', 'thumbnail_url', 'likes_count']
+
 class ShortsDetailSerializer(serializers.ModelSerializer):
     author = UserSimpleSerializer(read_only=True)
     comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Shorts
-        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author', 'comments']
+        fields = ['id', 'title', 'thumbnail_url', 'video_url', 'author', 'comments']
 
     def get_comments(self, obj):
         return ShortsCommentSerializer(obj.comments.all(), many=True).data
