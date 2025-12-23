@@ -40,7 +40,7 @@ class ShortsAdmin(admin.ModelAdmin):
             # 파일을 임시 저장 후 Celery 태스크 실행
             temp_path = os.path.join(settings.BASE_DIR, 'temp_shorts', f"pending_{obj.id}_{video_file.name}")
             os.makedirs(os.path.dirname(temp_path), exist_ok=True)
-            
+
             with open(temp_path, 'wb+') as destination:
                 for chunk in video_file.chunks():
                     destination.write(chunk)

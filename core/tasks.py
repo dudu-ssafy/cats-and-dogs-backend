@@ -128,27 +128,35 @@ def process_shorts_video(self, shorts_id, local_file_path, original_filename):
             # 트랜잭션 커밋 대기를 위해 재시도
             logger.warning(f"Shorts {shorts_id} not found, retrying... (Attempt {self.request.retries})")
             raise self.retry(countdown=2)
+
         # 0. 비디오 압축 및 최적화 (FFmpeg 사용)
         # MoviePy 버전 이슈로 인해 더 안정적인 FFmpeg subprocess 호출 방식으로 전환합니다.
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
         compressed_path = local_file_path + "_compressed.mp4"
         thumb_path = local_file_path + "_thumb.jpg"
-        
+
         logger.info(f"Processing video with FFmpeg: {local_file_path}")
 
-        # 1. 비디오 압축 및 리사이징 (너비 최대 480px, 짝수 높이 보장, 비트레이트 제한)
+        # 1. Gemini 분석용 극강의 소형화 (너비 160px, 1fps, 50k 비트레이트)
         compress_cmd = [
             ffmpeg_exe, '-i', local_file_path,
-            '-vf', "scale='min(480,iw)':-2",
-            '-vcodec', 'libx264', '-b:v', '1000k',
-            '-movflags', '+faststart', # 웹 스트리밍 최적화
-            '-acodec', 'aac', '-y', compressed_path
+            '-t', '10', 
+            '-vf', "scale='min(160,iw)':-2,fps=1",
+            '-vcodec', 'libx264', '-b:v', '50k',
+            '-preset', 'ultrafast',
+            '-movflags', '+faststart',
+            '-an', '-y', compressed_path
         ]
-        
+
         result = subprocess.run(compress_cmd, capture_output=True, text=True)
         if result.returncode != 0:
             logger.error(f"FFmpeg compression failed: {result.stderr}")
             raise Exception(f"FFmpeg compression failed: {result.stderr[:200]}")
+
+        # 압축된 파일 크기 로그 기록 (디버깅용)
+        if os.path.exists(compressed_path):
+            file_size_kb = os.path.getsize(compressed_path) / 1024
+            logger.info(f"Compressed video size for analysis: {file_size_kb:.2f} KB")
 
         # 2. 썸네일 추출 (0초 지점)
         thumb_cmd = [
@@ -168,19 +176,25 @@ def process_shorts_video(self, shorts_id, local_file_path, original_filename):
         if os.path.exists(thumb_path):
             os.remove(thumb_path)
 
-        # 1. GCS 업로드 (압축된 비디오 및 썸네일)
+        # 1. GCS 업로드 (원본 비디오 및 썸네일)
         storage_client = storage.Client.from_service_account_json(settings.GS_CREDENTIALS)
         bucket = storage_client.bucket(settings.GS_BUCKET_NAME)
-        
-        # 비디오 업로드 (압축본)
+
+        # 비디오 업로드 (원본 파일 업로드)
         video_blob = bucket.blob(f"shorts/video_{shorts_id}/{original_filename}")
-        video_blob.upload_from_filename(compressed_path)
+        video_blob.upload_from_filename(local_file_path)
         video_url = video_blob.public_url
 
         # 썸네일 업로드
         thumb_blob = bucket.blob(f"shorts/thumb_{shorts_id}/thumbnail.jpg")
         thumb_blob.upload_from_file(thumb_io, content_type='image/jpeg')
         thumbnail_url = thumb_blob.public_url
+
+        # 압축된 비디오 업로드
+        compress_blob = bucket.blob(f"shorts/video_{shorts_id}/{original_filename}_compressed.mp4")
+        compress_blob.upload_from_filename(compressed_path)
+        compressed_url = compress_blob.public_url
+
 
         # 2. Gemini를 이용한 제목/설명 생성 (FastAPI 스타일 참조)
         gms_key = os.environ.get('GMS_KEY')
@@ -197,34 +211,50 @@ def process_shorts_video(self, shorts_id, local_file_path, original_filename):
                 http_options={"base_url": "https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com"}
             )
             
-            # 압축된 비디오를 읽어서 Gemini에 전송
-            with open(compressed_path, 'rb') as f:
-                video_data = f.read()
+
+            prompt = '''
+            반려동물 영상 분석가이자 SEO 전문가로서 임베딩을 위한 글을 쓸꺼야.
+            다음 url 영상을 분석해 JSON 형식으로만 응답해줘.
+
+            [응답 JSON 형식]
+            {
+              "title": "영상의 핵심 내용을 요약한 제목 (20자 이내)",
+              "description": "동물 특징, 배경, 행동을 포함한 상세 설명 (3-5문장)",
+              "tags": ["검색용", "핵심", "키워드", "5-15개"]
+            }
             
-            prompt = "이 반려동물 쇼츠 영상을 보고 적절한 제목과 1-2문장의 설명을 작성해줘. JSON 형식으로 {'title': '...', 'description': '...'} 처럼 응답해줘."
-            
+            부연 설명 없이 JSON 코드 블록만 출력하고 모든 내용은 한국어로 작성해줘.
+            '''
+
             try:
                 # SDK v2 스타일 호출
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',
                     contents=[
-                        Part.from_bytes(data=video_data, mime_type="video/mp4"),
+                        Part.from_uri(file_uri=compressed_url, mime_type="video/mp4"),
                         prompt
                     ]
                 )
-                
-                import json
-                # 결과값 파싱
-                res_text = response.text.replace('```json', '').replace('```', '').strip()
-                res_data = json.loads(res_text)
 
-                if not title: title = res_data.get('title', f"반려동물 쇼츠 {shorts_id}")
-                if not description: description = res_data.get('description', "귀여운 반려동물 영상입니다.")
+                import json
+                # JSON 코드 블록 제거 및 파싱
+                clean_text = response.text.replace('```json', '').replace('```', '').strip()
+                res_data = json.loads(clean_text)
+                print('res_data:', res_data)
+                # 제목 추출 및 200자 제한
+                if not title:
+                    title = res_data.get('title', f"반려동물 쇼츠 {shorts_id}")[:100]
+                
+                # 설명 및 태그 합치기
+                description = res_data.get('description', "귀여운 반려동물 영상입니다.")
+                tags = res_data.get('tags', [])
+                if tags:
+                    description += f"\n\nTags: {', '.join(tags)}"
+
                 
             except Exception as e:
                 logger.error(f"Gemini Processing Error: {e}")
-                if not title: title = f"반려동물 쇼츠 {shorts_id}"
-                if not description: description = "귀여운 반려동물 영상입니다."
+
 
         # 4. 임베딩 생성
         embedding = process_embedding(title, description)

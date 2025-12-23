@@ -17,11 +17,13 @@ class Shorts(models.Model):
     )
     thumbnail_url = models.URLField(
         verbose_name='썸네일 URL',
+        max_length=500,
         null=True,
         blank=True,
     )
     video_url = models.URLField(
         verbose_name='비디오 URL',
+        max_length=500,
         null=True,
         blank=True,
     )
