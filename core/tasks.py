@@ -254,6 +254,15 @@ def process_shorts_video(self, shorts_id, local_file_path, original_filename):
                 
             except Exception as e:
                 logger.error(f"Gemini Processing Error: {e}")
+            
+            finally:
+                # GCS에 업로드된 분석용 임시 파일(압축본) 삭제
+                try:
+                    if 'compress_blob' in locals():
+                        compress_blob.delete()
+                        logger.info("Deleted temp compressed video from GCS")
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp GCS file: {e}")
 
 
         # 4. 임베딩 생성
