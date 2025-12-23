@@ -125,6 +125,7 @@ class ProductImage(models.Model):
         '이미지 URL',
         max_length=2000
     )
+
     is_main = models.BooleanField(
         '대표 이미지 여부',
         default=False

@@ -24,18 +24,10 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_main_image(self, obj):
-        # 1. 우선 대표 이미지(is_main=True) 확인
         image = obj.images.filter(is_main=True).first()
         if image:
             return image.image_url
-        
-        # 2. 대표 설정 안했으면 그냥 첫 번째 이미지 가져오기 (사용자 실수 방지)
-        first_image = obj.images.first()
-        if first_image:
-            return first_image.image_url
-            
-        # 3. 이미지 테이블에 없으면 상세 URL 사용
-        return obj.detail_image_url
+        return obj.detail_image_url # Fallback for simple admin entry
 
 # -----------------------------------------------------
 # 3. 상세 조회용 Serializer (기존 ProductSerializer 이름 변경)

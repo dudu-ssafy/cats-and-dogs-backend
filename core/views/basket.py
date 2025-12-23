@@ -57,3 +57,24 @@ class BasketManageView(APIView):
             return Response({"message": "상품이 장바구니에서 삭제되었습니다."}, status=status.HTTP_200_OK)
         else:
             return Response({"error": "해당 항목을 찾을 수 없거나 삭제 권한이 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+    def patch(self, request):
+        """장바구니 항목 수량 변경"""
+        item_id = request.data.get('item_id')
+        quantity = request.data.get('quantity')
+        
+        if not item_id or quantity is None:
+             return Response({"error": "item_id and quantity are required."}, status=status.HTTP_400_BAD_REQUEST)
+             
+        try:
+             quantity = int(quantity)
+        except ValueError:
+             return Response({"error": "quantity must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        result = BasketService().update_item_quantity(user, item_id, quantity)
+        
+        if result:
+             return Response({"message": "수량이 변경되었습니다."}, status=status.HTTP_200_OK)
+        else:
+             return Response({"error": "해당 항목을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
