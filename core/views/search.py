@@ -1,15 +1,14 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import F
 from pgvector.django import CosineDistance
-import numpy as np
+from django.db.models import Q, Case, When, Value, IntegerField
+
 import os
 import requests
 
 # Import models
 from core.models.board import Board
-from core.models.pet import Pet, BreedKnowledge
 from core.models.shop import Product
 from core.models.shorts import Shorts
 
@@ -43,82 +42,81 @@ class VectorSearchTestView(APIView):
             
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status() # Raise error for bad status codes
-            
+
             embedding = response.json()['data'][0]['embedding']
-            print('embedding 결과:', embedding)
         except requests.exceptions.RequestException as e:
             return Response({"error": f"GMS API Error: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
         except (KeyError, IndexError) as e:
              return Response({"error": f"Unexpected API Response format: {str(e)}"}, status=status.HTTP_502_BAD_GATEWAY)
 
-        # 2. Select the model
-        model_map = {
-            'board': Board,
-            'pet': BreedKnowledge,
-            'product': Product,
-            'shorts': Shorts
-        }
-        
-        ModelClass = model_map.get(target_model.lower())
-        if not ModelClass:
-            return Response(
-                {"error": f"Invalid model. Available models: {', '.join(model_map.keys())}"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 3. Perform Similarity Search using Cosine Distance
-        # Order by distance (ascending) -> most similar first
-        results = ModelClass.objects.annotate(
+        # 2. Perform Similarity Search for each model
+        # Shorts (5개)
+        shorts_results = Shorts.objects.annotate(
             distance=CosineDistance('embedding', embedding)
         ).order_by('distance')[:5]
 
-        # 4. Serialize results
-        # 4. Serialize results
-        data = []
-        if target_model == 'pet': # Handle BreedKnowledge results
-            for item in results:
-                data.append({
-                    "id": item.id,
-                    "breed": item.breed.name,
-                    "title": item.title,
-                    "content": item.content,
-                    "distance": item.distance
-                })
-        elif target_model == 'board':
-            for item in results:
-                data.append({
-                    "id": item.id,
-                    "title": item.title,
-                    "content": item.content,
-                    "distance": item.distance
-                })
-        elif target_model == 'product':
-             for item in results:
-                data.append({
-                    "id": item.id,
-                    "title": item.title,
-                    "description": item.description,
-                    "price": item.base_price,
-                    "distance": item.distance
-                })
-        elif target_model == 'shorts':
-             for item in results:
-                data.append({
-                    "id": item.id,
-                    "title": item.title,
-                    "description": item.description,
-                    "distance": item.distance
-                })
-        else:
-             # Fallback for generic or unknown models
-             for item in results:
-                item_data = {"id": getattr(item, 'id', None), "distance": item.distance}
-                if hasattr(item, 'title'): item_data['title'] = item.title
-                if hasattr(item, 'name'): item_data['name'] = item.name
-                data.append(item_data)
+        # Board (5개) - 제목 매칭 > 내용 매칭 > 벡터 유사도 순 정렬
+        board_results = Board.objects.filter(
+            Q(title__icontains=query_text) | Q(content__icontains=query_text)
+        ).annotate(
+            priority=Case(
+                When(title__icontains=query_text, then=Value(1)),
+                When(content__icontains=query_text, then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
+            distance=CosineDistance('embedding', embedding)
+        ).order_by('priority', 'distance')[:5]
+
+        # Product (4개)
+        product_results = Product.objects.annotate(
+            distance=CosineDistance('embedding', embedding)
+        ).order_by('distance')[:4]
+
+        # 3. Serialize results
+        data = {
+            "shorts": [],
+            "boards": [],
+            "products": []
+        }
+
+        for item in shorts_results:
+            data['shorts'].append({
+                "id": item.id,
+                "title": item.title,
+                "description": item.description,
+                "thumbnail_url": item.thumbnail_url,
+                "video_url": item.video_url,
+                "distance": item.distance
+            })
+
+        for item in board_results:
+            data['boards'].append({
+                "id": item.id,
+                "category": item.category,
+                "title": item.title,
+                "author": item.author.nickname if item.author and hasattr(item.author, 'nickname') else (item.author.username if item.author else "익명"),
+                "date": item.created_at.strftime('%Y-%m-%d'),
+                "comments": getattr(item, 'comments_count', 0), # Need annotation or separate query if related_name exists
+                "views": item.views,
+                "distance": item.distance
+            })
+
+        for item in product_results:
+            # Format price
+            price = f"{item.base_price:,}원" if item.base_price else "가격미정"
+            data['products'].append({
+                "id": item.id,
+                "name": item.title, # Frontend expects 'name'
+                "title": item.title,
+                "description": item.description,
+                "price": price, 
+                "img": item.images.first().image_url if item.images.exists() else None, # Frontend expects 'img'
+                "image": item.images.first().image_url if item.images.exists() else None,
+                "distance": item.distance
+            })
 
         return Response({
             "query": query_text,
-            "target_model": target_model,
             "results": data
         })

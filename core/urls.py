@@ -20,5 +20,5 @@ urlpatterns = [
     path('carts/', BasketManageView.as_view(), name='basket_manage'),
     path('token/pair/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('search/test/', search.VectorSearchTestView.as_view(), name='vector-search-test'),
+    path('search/', search.VectorSearchTestView.as_view(), name='vector-search-test'),
 ]
