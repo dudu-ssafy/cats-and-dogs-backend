@@ -83,17 +83,25 @@ class VectorSearchTestView(APIView):
         for item in board_results:
             data['boards'].append({
                 "id": item.id,
+                "category": item.category,
                 "title": item.title,
-                # "content": item.content,
+                "author": item.author.nickname if item.author and hasattr(item.author, 'nickname') else (item.author.username if item.author else "익명"),
+                "date": item.created_at.strftime('%Y-%m-%d'),
+                "comments": getattr(item, 'comments_count', 0), # Need annotation or separate query if related_name exists
+                "views": item.views,
                 "distance": item.distance
             })
 
         for item in product_results:
+            # Format price
+            price = f"{item.base_price:,}원" if item.base_price else "가격미정"
             data['products'].append({
                 "id": item.id,
+                "name": item.title, # Frontend expects 'name'
                 "title": item.title,
                 "description": item.description,
-                "price": item.base_price,
+                "price": price, 
+                "img": item.images.first().image_url if item.images.exists() else None, # Frontend expects 'img'
                 "image": item.images.first().image_url if item.images.exists() else None,
                 "distance": item.distance
             })
