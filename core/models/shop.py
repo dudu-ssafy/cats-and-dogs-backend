@@ -32,7 +32,9 @@ class Product(models.Model):
         max_length=200
     )
     description = models.TextField(
-        '상세 설명'
+        '상세 설명',
+        blank=True,
+        null=True,
     )
     embedding = VectorField(
         dimensions=1536,
