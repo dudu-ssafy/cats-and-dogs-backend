@@ -11,7 +11,7 @@ class ShortsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shorts
-        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author', 'likes_count', 'comments_count', 'is_liked']
+        fields = ['id', 'title', 'thumbnail_url', 'video_url', 'author', 'likes_count', 'comments_count', 'is_liked']
 
     def get_is_liked(self, obj):
         user = self.context.get('request').user
@@ -32,7 +32,7 @@ class ShortsDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Shorts
-        fields = ['id', 'title', 'thumbnail_url', 'description', 'video_url', 'author', 'comments']
+        fields = ['id', 'title', 'thumbnail_url', 'video_url', 'author', 'comments']
 
     def get_comments(self, obj):
         return ShortsCommentSerializer(obj.comments.all(), many=True).data
