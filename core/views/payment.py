@@ -1,9 +1,12 @@
+from django.shortcuts import redirect
+from django.conf import settings
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from core.services.payment import PaymentService
+from core.services.redis import RedisService
 
 class PaymentViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -50,6 +53,26 @@ class PaymentViewSet(viewsets.ViewSet):
         print(PaymentService.toss_payment())
         return Response({'status': 'success', 'message': 'Payment verified'}, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['get'])
+    def status(self, request):
+        """
+        주문 상태 조회
+        """
+        merchant_uid = request.GET.get('merchant_uid')
+        if not merchant_uid:
+            return Response({'error': 'merchant_uid is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from core.models import Order
+        try:
+            order = Order.objects.get(merchant_uid=merchant_uid)
+            return Response({
+                'merchant_uid': order.merchant_uid,
+                'status': order.status,
+                'total_amount': order.total_amount
+            }, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=False, methods=['post'])
     def kakao_ready(self, request):
         try:
@@ -59,30 +82,33 @@ class PaymentViewSet(viewsets.ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         response = PaymentService.kakao_payment_ready(order)
-
         if response and 'tid' in response:
-            request.session['tid'] = response['tid']
-            request.session['merchant_uid'] = order.merchant_uid
-            request.session['partner_user_id'] = str(order.user.id)
+            RedisService.set_payment_data(order.merchant_uid, {
+                'tid': response['tid'],
+                'merchant_uid': order.merchant_uid,
+                'partner_user_id': str(order.user.id)
+            })
 
         return Response(response, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def kakao_redirect(self, request):
-        tid = request.session.get('tid')
-        merchant_uid = request.session.get('merchant_uid')
-        partner_user_id = request.session.get('partner_user_id')
+        merchant_uid = request.GET.get('merchant_uid')
         pg_token = request.GET.get('pg_token')
 
-        if not tid or not pg_token or not merchant_uid:
-            print(tid, pg_token, merchant_uid)
-            return Response({'error': 'Missing payment information'}, status=status.HTTP_400_BAD_REQUEST)
+        if not merchant_uid:
+             return redirect(f"{settings.FRONTEND_URL}/payment/result?status=fail&error=no_merchant_uid")
+
+        payment_data = RedisService.get_payment_data(merchant_uid)
+        
+        if not payment_data or not pg_token:
+            return redirect(f"{settings.FRONTEND_URL}/payment/result?status=fail&merchant_uid={merchant_uid}&error=invalid_session")
+
+        tid = payment_data.get('tid')
+        partner_user_id = payment_data.get('partner_user_id')
 
         from core.tasks import process_kakao_payment_approval
         task = process_kakao_payment_approval.delay(pg_token, tid, merchant_uid, partner_user_id)
 
-        return Response({
-            'status': 'processing', 
-            'message': 'Payment approval started in background.',
-            'task_id': task.id
-        }, status=status.HTTP_200_OK)
+        # Redirect to frontend status page with task_id
+        return redirect(f"{settings.FRONTEND_URL}/payment/result?status=processing&merchant_uid={merchant_uid}&task_id={task.id}")

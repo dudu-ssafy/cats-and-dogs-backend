@@ -152,9 +152,9 @@ class PaymentService:
             "total_amount": int(order.total_amount),
             "vat_amount": 0,    
             "tax_free_amount": 0,
-            "approval_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
-            "fail_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
-            "cancel_url": "http://127.0.0.1:8000/api/v1/payments/kakao_redirect",
+            "approval_url": f"http://127.0.0.1:8000/api/v1/payments/kakao_redirect?merchant_uid={order.merchant_uid}",
+            "fail_url": f"http://127.0.0.1:8000/api/v1/payments/kakao_redirect?merchant_uid={order.merchant_uid}",
+            "cancel_url": f"http://127.0.0.1:8000/api/v1/payments/kakao_redirect?merchant_uid={order.merchant_uid}",
             "payment_method_type": "MONEY"
         }
 

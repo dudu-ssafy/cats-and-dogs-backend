@@ -83,3 +83,18 @@ class RedisService:
         if data:
             return json.loads(data)
         return []
+
+    @classmethod
+    def set_payment_data(cls, merchant_uid, data, timeout=300):
+        r = cls.get_connection()
+        key = f"payment:{merchant_uid}"
+        r.set(key, json.dumps(data), ex=timeout)
+
+    @classmethod
+    def get_payment_data(cls, merchant_uid):
+        r = cls.get_connection()
+        key = f"payment:{merchant_uid}"
+        data = r.get(key)
+        if data:
+            return json.loads(data)
+        return None
