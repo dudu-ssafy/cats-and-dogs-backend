@@ -317,3 +317,111 @@ def upload_user_image_to_gcs(user_id, local_file_path, original_filename):
     except Exception as e:
         return f"Delete File Failed: {str(e)}"
 
+
+@shared_task(bind=True, max_retries=3)
+def process_product_analysis(self, product_id):
+    """
+    상품 이미지를 분석하여 설명을 생성하고 임베딩을 저장합니다.
+    """
+    from core.models.shop import Product
+    from core.services.util import process_embedding
+    import base64
+    import requests
+    import json
+    from google import genai
+    from google.genai.types import Part
+
+    logger = logging.getLogger('task')
+    logger.info(f"[Task Start] Analyzing product {product_id}")
+
+    try:
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            logger.warning(f"Product {product_id} not found, retrying...")
+            raise self.retry(countdown=2)
+
+        gms_key = os.environ.get('GMS_KEY')
+        
+        # 1. Gemini Description Generation
+        # 이미지 소스 수집: 메인 상세 이미지 + 추가 이미지들
+        image_urls = []
+        if product.detail_image_url:
+            image_urls.append(product.detail_image_url)
+        
+        # 인라인 이미지들 추가
+        for img in product.images.all():
+            if img.image_url:
+                image_urls.append(img.image_url)
+
+        if gms_key and image_urls and not product.description:
+            try:
+                image_parts = []
+                logger.info(f"Preparing {len(image_urls)} image URIs for analysis...")
+
+                for url in image_urls:
+                    # Simple mime type detection based on extension
+                    mime_type = "image/jpeg"
+                    if url.lower().endswith(".png"):
+                        mime_type = "image/png"
+                    elif url.lower().endswith(".webp"):
+                        mime_type = "image/webp"
+                    
+                    image_parts.append(Part.from_uri(file_uri=url, mime_type=mime_type))
+
+                if not image_parts:
+                    logger.warning("No valid images found for analysis.")
+                    raise Exception("No valid images")
+
+                client = genai.Client(
+                    api_key=gms_key,
+                    http_options={"base_url": "https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com"}
+                )
+
+                prompt = """
+                반려동물 용품 쇼핑몰의 SEO 전문가로서 제공된 상품 이미지들을 종합적으로 분석해줘.
+                메인 이미지와 세부 컷들을 모두 참고하여 JSON 형식으로 응답해:
+                {
+                    "description": "상품의 특징, 소재, 디자인 디테일, 반려동물에게 좋은 점을 포함한 풍부한 상세 설명 (3-5문장)",
+                    "tags": ["키워드1", "키워드2", "키워드3", "키워드4", "키워드5"]
+                }
+                JSON 코드 블록만 출력해.
+                """
+
+                contents = image_parts + [prompt]
+
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=contents
+                )
+                
+                clean_text = response.text.replace('```json', '').replace('```', '').strip()
+                res_data = json.loads(clean_text)
+                
+                description = res_data.get('description', '')
+                tags = res_data.get('tags', [])
+                
+                if tags:
+                    description += f"\n\nTags: {', '.join(tags)}"
+                
+                product.description = description
+                logger.info(f"Generated description for Product {product_id} with {len(image_parts)} images")
+
+            except Exception as e:
+                logger.error(f"Gemini Analysis Failed for Product {product_id}: {e}")
+
+        # 2. Embedding Generation
+        if product.title and product.description:
+            try:
+                embedding = process_embedding(product.title, product.description)
+                product.embedding = embedding
+                logger.info(f"Generated embedding for Product {product_id}")
+            except Exception as e:
+                logger.error(f"Embedding Generation Failed for Product {product_id}: {e}")
+
+        product.save()
+        return f"Success: {product_id}"
+
+    except Exception as e:
+        logger.error(f"[Task Failed] Product {product_id}: {e}")
+        return f"Error: {e}"

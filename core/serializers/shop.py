@@ -25,7 +25,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_main_image(self, obj):
         image = obj.images.filter(is_main=True).first()
-        return image.image_url if image else None
+        if image:
+            return image.image_url
+        return obj.detail_image_url # Fallback for simple admin entry
 
 # -----------------------------------------------------
 # 3. 상세 조회용 Serializer (기존 ProductSerializer 이름 변경)
@@ -35,7 +37,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         # 모든 상세 필드를 포함합니다.
         fields = [
             'id', 'category_name', 'title', 'description', 'base_price', 
-            'is_sale', 'created_at', 'options','images'
+            'is_sale', 'created_at', 'options','images', 'detail_image_url'
         ]
         read_only_fields = ['created_at']
 

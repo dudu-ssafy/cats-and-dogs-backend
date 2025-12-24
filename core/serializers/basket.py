@@ -13,12 +13,28 @@ class BasketItemSerializer(serializers.ModelSerializer):
     option_id = serializers.IntegerField(write_only=True, required=False)
 
     price_at_addition = serializers.SerializerMethodField()
+    main_image = serializers.SerializerMethodField()
 
     class Meta:
         model = BasketItem
         fields = ['id', 'option_id', 'quantity', 
-                  'product_name', 'option_value', 'price_at_addition']
+                  'product_name', 'option_value', 'price_at_addition', 'main_image']
         read_only_fields = ['id', 'product_name', 'option_value']
+
+    def get_main_image(self, obj):
+        # 1. 상품 객체 가져오기 (옵션 여부에 따라)
+        product = obj.option.product if obj.option else obj.product
+        
+        # 2. 이미지 조회 (ProductListSerializer와 동일 로직)
+        image = product.images.filter(is_main=True).first()
+        if image: 
+            return image.image_url
+        
+        first = product.images.first()
+        if first:
+            return first.image_url
+            
+        return product.detail_image_url
 
     def get_price_at_addition(self, obj):
         # 현재 판매가(기본가 + 옵션가)를 반환

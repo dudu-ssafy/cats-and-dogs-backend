@@ -85,3 +85,17 @@ class BasketService:
         """
         basket, created = Basket.objects.get_or_create(user=user)
         return basket
+
+    def update_item_quantity(self, user, item_id, quantity):
+        """장바구니 항목 수량 변경 (덮어쓰기)"""
+        if quantity < 1:
+            raise InvalidQuantityError()
+
+        basket = self.get_user_basket(user)
+        try:
+            item = BasketItem.objects.get(id=item_id, basket=basket)
+            item.quantity = quantity
+            item.save()
+            return item
+        except BasketItem.DoesNotExist:
+            return None
